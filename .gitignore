@@ -1,0 +1,19 @@
+# Virtual Environment
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Dataset (keep folder, ignore images)
+dataset/*
+!dataset/README.md
+
+# Generated Embeddings
+models/embeddings.pkl
