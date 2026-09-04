@@ -1,19 +1,85 @@
+# =========================
 # Virtual Environment
+# =========================
+
 venv/
+.venv/
+env/
 
+
+# =========================
 # Python
-__pycache__/
-*.pyc
+# =========================
 
+__pycache__/
+*.py[cod]
+
+
+# =========================
 # VS Code
+# =========================
+
 .vscode/
 
+
+# =========================
 # macOS
+# =========================
+
 .DS_Store
 
-# Dataset (keep folder, ignore images)
+
+# =========================
+# Dataset
+# Keep folder, ignore actual images/data
+# =========================
+
 dataset/*
 !dataset/README.md
 
-# Generated Embeddings
+
+# =========================
+# Generated Embeddings / Models
+# =========================
+
 models/embeddings.pkl
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.keras
+*.onnx
+
+
+# =========================
+# Database
+# =========================
+
+*.db
+*.sqlite
+*.sqlite3
+
+
+# =========================
+# Environment / Secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+
+# =========================
+# Uploads / Temporary Face Images
+# =========================
+
+uploads/*
+!uploads/README.md
+
+
+# =========================
+# Logs
+# =========================
+
+logs/
+*.log
