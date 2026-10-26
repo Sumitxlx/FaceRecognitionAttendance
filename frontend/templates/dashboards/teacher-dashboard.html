@@ -1,0 +1,816 @@
+{% extends "layout.html" %}
+
+
+{% block title %}
+SmartAttend · Teacher Dashboard
+{% endblock %}
+
+
+{% block breadcrumb %}
+Dashboard
+{% endblock %}
+
+
+{% block content %}
+
+
+<!-- =======================================================
+     PAGE HEADER
+     ======================================================= -->
+
+<section class="page-header">
+
+    <div>
+
+        <p class="page-eyebrow">
+            TEACHER PORTAL
+        </p>
+
+        <h1 class="page-title">
+            Good morning, Teacher
+        </h1>
+
+        <p class="page-description">
+            Here's what's happening with your classes today.
+        </p>
+
+    </div>
+
+
+    <a
+        href="/take-attendance"
+        class="primary-button"
+    >
+
+        <span>+</span>
+
+        Start Attendance
+
+    </a>
+
+</section>
+
+
+
+<!-- =======================================================
+     STATISTICS
+     ======================================================= -->
+
+<section class="stats-grid">
+
+
+    <!-- Attendance -->
+
+    <article class="stat-card">
+
+        <div class="stat-card-top">
+
+            <div class="stat-icon stat-icon-indigo">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+
+                    <path
+                        d="M5 12l4 4L19 6"
+                    />
+
+                </svg>
+
+            </div>
+
+            <span class="stat-trend positive">
+                ↑ 3.2%
+            </span>
+
+        </div>
+
+
+        <div class="stat-value">
+            86.4%
+        </div>
+
+        <div class="stat-label">
+            Overall attendance
+        </div>
+
+    </article>
+
+
+
+    <!-- Students -->
+
+    <article class="stat-card">
+
+        <div class="stat-card-top">
+
+            <div class="stat-icon stat-icon-blue">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+
+                    <path
+                        d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                    />
+
+                    <circle
+                        cx="9"
+                        cy="7"
+                        r="4"
+                    />
+
+                </svg>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-value">
+            142
+        </div>
+
+        <div class="stat-label">
+            Total students
+        </div>
+
+    </article>
+
+
+
+    <!-- Sessions -->
+
+    <article class="stat-card">
+
+        <div class="stat-card-top">
+
+            <div class="stat-icon stat-icon-green">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+
+                    <rect
+                        x="3"
+                        y="4"
+                        width="18"
+                        height="16"
+                        rx="2"
+                    />
+
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <path d="M3 10h18" />
+
+                </svg>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-value">
+            12
+        </div>
+
+        <div class="stat-label">
+            Sessions this week
+        </div>
+
+    </article>
+
+
+
+    <!-- At Risk -->
+
+    <article class="stat-card">
+
+        <div class="stat-card-top">
+
+            <div class="stat-icon stat-icon-orange">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+
+                    <path
+                        d="M10.3 3.9L2.5 17a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"
+                    />
+
+                    <path d="M12 9v4" />
+
+                    <circle
+                        cx="12"
+                        cy="17"
+                        r=".5"
+                        fill="currentColor"
+                    />
+
+                </svg>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-value">
+            03
+        </div>
+
+        <div class="stat-label">
+            Students at risk
+        </div>
+
+    </article>
+
+
+</section>
+
+
+
+<!-- =======================================================
+     MAIN DASHBOARD GRID
+     ======================================================= -->
+
+<section class="dashboard-layout">
+
+
+    <!-- ===================================================
+         ATTENDANCE OVERVIEW
+         =================================================== -->
+
+    <article class="dashboard-card attendance-overview">
+
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Attendance overview
+                </h2>
+
+                <p>
+                    Weekly attendance performance
+                </p>
+
+            </div>
+
+
+            <button
+                class="card-filter"
+                type="button"
+            >
+                This week
+                <span>⌄</span>
+            </button>
+
+        </div>
+
+
+        <!-- Fake chart area for now -->
+
+        <div class="chart-placeholder">
+
+
+            <div class="chart-y-axis">
+
+                <span>100%</span>
+                <span>75%</span>
+                <span>50%</span>
+                <span>25%</span>
+                <span>0%</span>
+
+            </div>
+
+
+            <div class="chart-area">
+
+                <div class="chart-grid-lines">
+
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+
+                </div>
+
+
+                <svg
+                    class="attendance-line"
+                    viewBox="0 0 600 220"
+                    preserveAspectRatio="none"
+                >
+
+                    <defs>
+
+                        <linearGradient
+                            id="chartGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                        >
+
+                            <stop
+                                offset="0%"
+                                stop-color="#6366f1"
+                                stop-opacity="0.22"
+                            />
+
+                            <stop
+                                offset="100%"
+                                stop-color="#6366f1"
+                                stop-opacity="0"
+                            />
+
+                        </linearGradient>
+
+                    </defs>
+
+
+                    <path
+                        d="M0 150
+                           C70 140 80 115 150 125
+                           C210 135 220 90 285 100
+                           C350 110 365 65 420 80
+                           C475 95 510 45 600 55
+                           L600 220
+                           L0 220 Z"
+                        fill="url(#chartGradient)"
+                    />
+
+
+                    <path
+                        d="M0 150
+                           C70 140 80 115 150 125
+                           C210 135 220 90 285 100
+                           C350 110 365 65 420 80
+                           C475 95 510 45 600 55"
+                        fill="none"
+                        stroke="#6366f1"
+                        stroke-width="3"
+                    />
+
+                </svg>
+
+
+                <div class="chart-days">
+
+                    <span>Mon</span>
+                    <span>Tue</span>
+                    <span>Wed</span>
+                    <span>Thu</span>
+                    <span>Fri</span>
+                    <span>Sat</span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+    </article>
+
+
+
+    <!-- ===================================================
+         RECENT SESSIONS
+         =================================================== -->
+
+    <article class="dashboard-card recent-sessions">
+
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Recent sessions
+                </h2>
+
+                <p>
+                    Your latest attendance sessions
+                </p>
+
+            </div>
+
+
+            <a
+                href="/attendance-records"
+                class="text-link"
+            >
+                View all →
+            </a>
+
+        </div>
+
+
+        <div class="session-list">
+
+
+            <!-- Session 1 -->
+
+            <div class="session-item">
+
+                <div class="session-icon">
+                    DB
+                </div>
+
+
+                <div class="session-info">
+
+                    <strong>
+                        Database Systems
+                    </strong>
+
+                    <span>
+                        Today · 10:00 AM
+                    </span>
+
+                </div>
+
+
+                <div class="session-result">
+
+                    <strong>
+                        42/45
+                    </strong>
+
+                    <span class="status-badge success">
+                        93%
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Session 2 -->
+
+            <div class="session-item">
+
+                <div class="session-icon">
+                    OS
+                </div>
+
+
+                <div class="session-info">
+
+                    <strong>
+                        Operating Systems
+                    </strong>
+
+                    <span>
+                        Today · 12:00 PM
+                    </span>
+
+                </div>
+
+
+                <div class="session-result">
+
+                    <strong>
+                        39/44
+                    </strong>
+
+                    <span class="status-badge success">
+                        89%
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Session 3 -->
+
+            <div class="session-item">
+
+                <div class="session-icon">
+                    CN
+                </div>
+
+
+                <div class="session-info">
+
+                    <strong>
+                        Computer Networks
+                    </strong>
+
+                    <span>
+                        Yesterday · 11:00 AM
+                    </span>
+
+                </div>
+
+
+                <div class="session-result">
+
+                    <strong>
+                        34/42
+                    </strong>
+
+                    <span class="status-badge warning">
+                        81%
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Session 4 -->
+
+            <div class="session-item">
+
+                <div class="session-icon">
+                    AI
+                </div>
+
+
+                <div class="session-info">
+
+                    <strong>
+                        Artificial Intelligence
+                    </strong>
+
+                    <span>
+                        Yesterday · 2:00 PM
+                    </span>
+
+                </div>
+
+
+                <div class="session-result">
+
+                    <strong>
+                        41/43
+                    </strong>
+
+                    <span class="status-badge success">
+                        95%
+                    </span>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+    </article>
+
+
+</section>
+
+
+
+<!-- =======================================================
+     BOTTOM SECTION
+     ======================================================= -->
+
+<section class="bottom-dashboard-grid">
+
+
+    <!-- Quick Actions -->
+
+    <article class="dashboard-card">
+
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Quick actions
+                </h2>
+
+                <p>
+                    Common tasks
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="quick-actions">
+
+
+            <a
+                href="/take-attendance"
+                class="quick-action"
+            >
+
+                <span class="quick-action-icon">
+                    +
+                </span>
+
+                <span>
+
+                    <strong>
+                        Start attendance
+                    </strong>
+
+                    <small>
+                        Begin a new session
+                    </small>
+
+                </span>
+
+            </a>
+
+
+            <a
+                href="/students"
+                class="quick-action"
+            >
+
+                <span class="quick-action-icon">
+                    →
+                </span>
+
+                <span>
+
+                    <strong>
+                        View students
+                    </strong>
+
+                    <small>
+                        Manage your students
+                    </small>
+
+                </span>
+
+            </a>
+
+
+            <a
+                href="/analytics"
+                class="quick-action"
+            >
+
+                <span class="quick-action-icon">
+                    ↗
+                </span>
+
+                <span>
+
+                    <strong>
+                        Open analytics
+                    </strong>
+
+                    <small>
+                        Explore attendance trends
+                    </small>
+
+                </span>
+
+            </a>
+
+
+        </div>
+
+
+    </article>
+
+
+
+    <!-- At Risk -->
+
+    <article class="dashboard-card">
+
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Students at risk
+                </h2>
+
+                <p>
+                    Attendance below 75%
+                </p>
+
+            </div>
+
+
+            <a
+                href="/analytics"
+                class="text-link"
+            >
+                View analytics →
+            </a>
+
+        </div>
+
+
+        <div class="risk-list">
+
+
+            <div class="risk-item">
+
+                <div class="student-avatar">
+                    H
+                </div>
+
+                <div class="risk-student">
+
+                    <strong>
+                        Himanshu
+                    </strong>
+
+                    <span>
+                        Database Systems
+                    </span>
+
+                </div>
+
+                <span class="risk-percentage">
+                    68%
+                </span>
+
+            </div>
+
+
+            <div class="risk-item">
+
+                <div class="student-avatar">
+                    P
+                </div>
+
+                <div class="risk-student">
+
+                    <strong>
+                        Priya
+                    </strong>
+
+                    <span>
+                        Computer Networks
+                    </span>
+
+                </div>
+
+                <span class="risk-percentage">
+                    71%
+                </span>
+
+            </div>
+
+
+            <div class="risk-item">
+
+                <div class="student-avatar">
+                    S
+                </div>
+
+                <div class="risk-student">
+
+                    <strong>
+                        Sumit
+                    </strong>
+
+                    <span>
+                        Operating Systems
+                    </span>
+
+                </div>
+
+                <span class="risk-percentage">
+                    73%
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+    </article>
+
+
+</section>
+
+
+{% endblock %}

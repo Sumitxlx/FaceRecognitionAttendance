@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="SmartAttend - Privacy-first attendance management"
+    >
+
+    <title>
+        {% block title %}SmartAttend{% endblock %}
+    </title>
+
+    <!-- Google Font -->
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Main stylesheet -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='css/style.css') }}"
+    >
+
+    {% block head %}
+    {% endblock %}
+
+</head>
+
+
+<body>
+
+    <div class="app-shell">
+
+
+        <!-- ================================================= -->
+        <!-- SIDEBAR -->
+        <!-- ================================================= -->
+
+        <aside class="sidebar" id="sidebar">
+
+
+            <!-- Brand -->
+
+            <div class="sidebar-brand">
+
+                <a href="/" class="brand">
+
+                    <div class="brand-mark">
+                        SA
+                    </div>
+
+                    <div class="brand-text">
+
+                        <span class="brand-name">
+                            SmartAttend
+                        </span>
+
+                        <span class="brand-tagline">
+                            Smart attendance
+                        </span>
+
+                    </div>
+
+                </a>
+
+            </div>
+
+
+            <!-- Navigation -->
+
+            <nav class="sidebar-nav">
+
+
+                <!-- Overview -->
+
+                <div class="nav-section">
+
+                    <p class="nav-section-title">
+                        Overview
+                    </p>
+
+                    <a
+                        href="/teacher-dashboard"
+                        class="nav-item {% if active_page == 'dashboard' %}active{% endif %}"
+                    >
+
+                        <span class="nav-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="7"
+                                    height="7"
+                                    rx="1"
+                                />
+
+                                <rect
+                                    x="14"
+                                    y="3"
+                                    width="7"
+                                    height="7"
+                                    rx="1"
+                                />
+
+                                <rect
+                                    x="3"
+                                    y="14"
+                                    width="7"
+                                    height="7"
+                                    rx="1"
+                                />
+
+                                <rect
+                                    x="14"
+                                    y="14"
+                                    width="7"
+                                    height="7"
+                                    rx="1"
+                                />
+                            </svg>
+                        </span>
+
+                        <span>
+                            Dashboard
+                        </span>
+
+                    </a>
+
+                </div>
+
+
+                <!-- Attendance -->
+
+                <div class="nav-section">
+
+                    <p class="nav-section-title">
+                        Attendance
+                    </p>
+
+
+                    <a
+                        href="/take-attendance"
+                        class="nav-item {% if active_page == 'take-attendance' %}active{% endif %}"
+                    >
+
+                        <span class="nav-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+
+                                <rect
+                                    x="3"
+                                    y="4"
+                                    width="18"
+                                    height="16"
+                                    rx="2"
+                                />
+
+                                <circle
+                                    cx="12"
+                                    cy="10"
+                                    r="3"
+                                />
+
+                                <path
+                                    d="M7 17c1.5-2 3-3 5-3s3.5 1 5 3"
+                                />
+
+                            </svg>
+
+                        </span>
+
+                        <span>
+                            Take Attendance
+                        </span>
+
+                    </a>
+
+
+                    <a
+                        href="/attendance-records"
+                        class="nav-item {% if active_page == 'records' %}active{% endif %}"
+                    >
+
+                        <span class="nav-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+
+                                <path
+                                    d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
+                                />
+
+                                <path d="M8 8h8" />
+                                <path d="M8 12h8" />
+                                <path d="M8 16h5" />
+
+                            </svg>
+
+                        </span>
+
+                        <span>
+                            Attendance Records
+                        </span>
+
+                    </a>
+
+                </div>
+
+
+                <!-- Management -->
+
+                <div class="nav-section">
+
+                    <p class="nav-section-title">
+                        Management
+                    </p>
+
+
+                    <a
+                        href="/students"
+                        class="nav-item {% if active_page == 'students' %}active{% endif %}"
+                    >
+
+                        <span class="nav-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+
+                                <path
+                                    d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                                />
+
+                                <circle
+                                    cx="9"
+                                    cy="7"
+                                    r="4"
+                                />
+
+                                <path
+                                    d="M22 21v-2a4 4 0 0 0-3-3.87"
+                                />
+
+                                <path
+                                    d="M16 3.13a4 4 0 0 1 0 7.75"
+                                />
+
+                            </svg>
+
+                        </span>
+
+                        <span>
+                            Students
+                        </span>
+
+                    </a>
+
+                </div>
+
+
+                <!-- Insights -->
+
+                <div class="nav-section">
+
+                    <p class="nav-section-title">
+                        Insights
+                    </p>
+
+
+                    <a
+                        href="/analytics"
+                        class="nav-item {% if active_page == 'analytics' %}active{% endif %}"
+                    >
+
+                        <span class="nav-icon">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+
+                                <path
+                                    d="M4 19V5"
+                                />
+
+                                <path
+                                    d="M4 19h16"
+                                />
+
+                                <path
+                                    d="M7 15l4-4 3 2 5-6"
+                                />
+
+                            </svg>
+
+                        </span>
+
+                        <span>
+                            Analytics
+                        </span>
+
+                    </a>
+
+                </div>
+
+
+            </nav>
+
+
+            <!-- Sidebar Bottom -->
+
+            <div class="sidebar-bottom">
+
+
+                <a href="#" class="nav-item">
+
+                    <span class="nav-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="3"
+                            />
+
+                            <path
+                                d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.8 1.8-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V22h-2.55v-.1a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.8-1.8.06-.06A1.7 1.7 0 0 0 8.1 17a1.7 1.7 0 0 0-1.56-1.03H6.4v-2.55h.14A1.7 1.7 0 0 0 8.1 12a1.7 1.7 0 0 0-.34-1.88L7.7 10.06l1.8-1.8.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56V7h2.55v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.8 1.8-.06.06A1.7 1.7 0 0 0 19.4 12a1.7 1.7 0 0 0 1.56 1.03h.14v2.55h-.14A1.7 1.7 0 0 0 19.4 15z"
+                            />
+
+                        </svg>
+
+                    </span>
+
+                    <span>
+                        Settings
+                    </span>
+
+                </a>
+
+
+                <a href="/login" class="nav-item logout-item">
+
+                    <span class="nav-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path
+                                d="M10 17l5-5-5-5"
+                            />
+
+                            <path
+                                d="M15 12H3"
+                            />
+
+                            <path
+                                d="M21 19V5a2 2 0 0 0-2-2h-6"
+                            />
+
+                        </svg>
+
+                    </span>
+
+                    <span>
+                        Sign out
+                    </span>
+
+                </a>
+
+
+            </div>
+
+
+        </aside>
+
+
+
+        <!-- ================================================= -->
+        <!-- MAIN APPLICATION -->
+        <!-- ================================================= -->
+
+        <div class="main-area">
+
+
+            <!-- Topbar -->
+
+            <header class="topbar">
+
+
+                <div class="topbar-left">
+
+                    <button
+                        class="mobile-menu-button"
+                        id="mobileMenuButton"
+                        type="button"
+                        aria-label="Open navigation"
+                    >
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path d="M4 6h16" />
+                            <path d="M4 12h16" />
+                            <path d="M4 18h16" />
+
+                        </svg>
+
+                    </button>
+
+
+                    <div class="breadcrumb">
+
+                        <span class="breadcrumb-muted">
+                            SmartAttend
+                        </span>
+
+                        <span class="breadcrumb-separator">
+                            /
+                        </span>
+
+                        <span>
+                            {% block breadcrumb %}
+                            Dashboard
+                            {% endblock %}
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="topbar-right">
+
+
+                    <!-- Notification -->
+
+                    <button
+                        class="icon-button"
+                        type="button"
+                        aria-label="Notifications"
+                    >
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path
+                                d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
+                            />
+
+                            <path
+                                d="M13.73 21a2 2 0 0 1-3.46 0"
+                            />
+
+                        </svg>
+
+                        <span class="notification-dot"></span>
+
+                    </button>
+
+
+                    <!-- Divider -->
+
+                    <div class="topbar-divider"></div>
+
+
+                    <!-- User -->
+
+                    <button
+                        class="user-menu"
+                        type="button"
+                    >
+
+                        <div class="user-avatar">
+                            T
+                        </div>
+
+                        <div class="user-info">
+
+                            <span class="user-name">
+                                Teacher
+                            </span>
+
+                            <span class="user-role">
+                                Faculty
+                            </span>
+
+                        </div>
+
+                        <svg
+                            class="user-chevron"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path d="m6 9 6 6 6-6" />
+
+                        </svg>
+
+                    </button>
+
+
+                </div>
+
+            </header>
+
+
+
+            <!-- Page Content -->
+
+            <main class="page-content">
+
+                {% block content %}
+                {% endblock %}
+
+            </main>
+
+
+
+            <!-- Footer -->
+
+            <footer class="app-footer">
+
+                <span>
+                    © 2026 SmartAttend
+                </span>
+
+                <span>
+                    Privacy-first attendance management
+                </span>
+
+            </footer>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Mobile sidebar overlay -->
+
+    <div
+        class="sidebar-overlay"
+        id="sidebarOverlay"
+    ></div>
+
+
+    <!-- JavaScript -->
+
+    <script
+        src="{{ url_for('static', path='js/app.js') }}"
+    ></script>
+
+
+    {% block scripts %}
+    {% endblock %}
+
+
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <p class="hero-tag">AI-POWERED ATTENDANCE SYSTEM</p>
+
+        <h1>
+            Smarter Attendance.
+            <span>Built with AI.</span>
+        </h1>
+
+        <p class="hero-description">
+            SmartAttend is a privacy-first attendance management system
+            that uses face recognition, secure authentication, and
+            attendance analytics to make classroom attendance smarter
+            and more efficient.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="/login" class="btn btn-primary">
+                Get Started
+            </a>
+
+            <a href="#how-it-works" class="btn btn-secondary">
+                How It Works
+            </a>
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="features">
+
+    <div class="section-heading">
+        <p class="section-tag">CORE FEATURES</p>
+
+        <h2>
+            Everything needed for
+            <span>smart attendance</span>
+        </h2>
+
+        <p>
+            SmartAttend combines computer vision, secure backend
+            services and analytics into one attendance platform.
+        </p>
+    </div>
+
+
+    <div class="feature-grid">
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                👤
+            </div>
+
+            <h3>Face Recognition</h3>
+
+            <p>
+                Identify registered students using facial
+                embeddings and similarity matching.
+            </p>
+
+        </div>
+
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                ⚡
+            </div>
+
+            <h3>Automatic Attendance</h3>
+
+            <p>
+                Recognized students can be marked present
+                automatically during an attendance session.
+            </p>
+
+        </div>
+
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                🔐
+            </div>
+
+            <h3>Privacy First</h3>
+
+            <p>
+                Sensitive biometric representations are designed
+                to be protected instead of storing raw face images
+                as the primary recognition data.
+            </p>
+
+        </div>
+
+
+        <div class="feature-card">
+
+            <div class="feature-icon">
+                📊
+            </div>
+
+            <h3>Attendance Analytics</h3>
+
+            <p>
+                Analyze attendance history, subject-wise performance
+                and identify students who may be at risk.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="how-it-works" id="how-it-works">
+
+    <div class="section-heading">
+
+        <p class="section-tag">HOW IT WORKS</p>
+
+        <h2>
+            From camera to
+            <span>attendance</span>
+        </h2>
+
+    </div>
+
+
+    <div class="steps">
+
+        <div class="step">
+
+            <div class="step-number">
+                01
+            </div>
+
+            <h3>Enroll</h3>
+
+            <p>
+                A student's face is captured and processed
+                through quality checks and alignment.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">
+                02
+            </div>
+
+            <h3>Recognize</h3>
+
+            <p>
+                The live face is converted into a numerical
+                representation and compared with enrolled students.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">
+                03
+            </div>
+
+            <h3>Mark Attendance</h3>
+
+            <p>
+                A sufficiently confident recognition can create
+                an attendance record for the active session.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">
+                04
+            </div>
+
+            <h3>Analyze</h3>
+
+            <p>
+                Attendance records can be used for dashboards,
+                trends and predictive defaulter analytics.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="cta">
+
+    <div class="cta-content">
+
+        <p class="section-tag">
+            GET STARTED
+        </p>
+
+        <h2>
+            Make attendance
+            <span>smarter.</span>
+        </h2>
+
+        <p>
+            Secure attendance management powered by
+            computer vision and analytics.
+        </p>
+
+        <a href="/login" class="btn btn-primary">
+            Login to SmartAttend
+        </a>
+
+    </div>
+
+</section>
+
+{% endblock %}

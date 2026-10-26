@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SmartAttend</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='css/style.css') }}">
+</head>
+
+<body>
+
+    <header>
+        <nav>
+            <a href="/" class="logo">
+                SmartAttend
+            </a>
+
+            <div>
+                <a href="/">Home</a>
+                <a href="/login">Login</a>
+            </div>
+        </nav>
+    </header>
+
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+
+    <footer>
+        <p>© 2026 SmartAttend</p>
+    </footer>
+
+</body>
+</html>
