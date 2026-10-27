@@ -1,14 +1,16 @@
-{% extends "layout.html" %}
+{% extends "public-layout.html" %}
+
+{% block title %}SmartAttend · Attendance, made clear{% endblock %}
 
 {% block content %}
 
-<section class="hero">
+<section class="hero" aria-labelledby="homeTitle">
 
     <div class="hero-content">
 
         <p class="hero-tag">AI-POWERED ATTENDANCE SYSTEM</p>
 
-        <h1>
+        <h1 id="homeTitle">
             Smarter Attendance.
             <span>Built with AI.</span>
         </h1>
@@ -35,7 +37,7 @@
 </section>
 
 
-<section class="features">
+<section class="features" id="features">
 
     <div class="section-heading">
         <p class="section-tag">CORE FEATURES</p>

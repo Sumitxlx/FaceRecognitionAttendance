@@ -1,36 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Students and enrollment{% endblock %}
+{% block breadcrumb %}Students{% endblock %}
+{% block content %}
+<section class="page-header"><div><p class="page-eyebrow">STUDENT MANAGEMENT</p><h1 class="page-title">Students &amp; face enrollment</h1>
+  <p class="page-description">Create a student record, then enroll or re-enroll a face using verified captures.</p></div>
+  <button id="retryStudentData" class="button button-secondary" type="button">Reload departments &amp; roster</button></section>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAttend - Students</title>
-</head>
+<div class="page-stack">
+  <section class="app-panel">
+    <h2>Create student record</h2><p class="muted">Administrators also create a linked student login. The generated temporary password is shown once after saving. Enroll the face below when the student is ready.</p>
+    <form id="createStudentForm" class="form-grid">
+      <label class="field">Full name<input id="newName" required maxlength="120"></label>
+      <label class="field">Roll number<input id="newRoll" required maxlength="64"></label>
+      <label class="field">Email<input id="newEmail" type="email" required></label>
+      <label class="field">Department<select id="newDepartment" required><option value="">Loading departments…</option></select></label>
+      <button class="button button-primary" type="submit">Save student</button>
+    </form><p id="createStudentStatus" class="status-message" role="status" aria-live="polite"></p>
+  </section>
 
-<body>
+  <section class="app-panel">
+    <h2>Student roster</h2>
+    <div class="filter-row"><label class="field">Search name, roll number, or email<input id="studentSearch" type="search" placeholder="Search students"></label>
+      <button id="searchStudents" class="button button-secondary" type="button">Search</button><button id="refreshStudents" class="button button-secondary" type="button">Refresh roster</button></div>
+    <p id="rosterStatus" class="status-message" role="status" aria-live="polite"></p>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Roll number</th><th>Email</th><th>Department</th><th>Student login</th><th>Face samples</th><th>Actions</th></tr></thead>
+      <tbody id="studentRoster"><tr><td colspan="7">Loading students…</td></tr></tbody></table></div>
+  </section>
 
-    <header>
-        <h1>SmartAttend</h1>
-        <p>Students</p>
-    </header>
+  <section class="app-panel" id="enrollmentPanel">
+    <h2>Enroll a face</h2><p class="muted">Choose a student without a current enrollment. Capture from the camera or upload 30 supported image files. The server validates image quality, face count, alignment, and ArcFace vectors before saving.</p>
+    <form id="enrollmentForm">
+      <div class="form-grid">
+        <label class="field">Existing student<select id="existingStudent"><option value="">Choose an existing student</option></select></label>
+        <label class="field">Full name<input id="name" required maxlength="120"></label>
+        <label class="field">Roll number<input id="roll" required maxlength="64"></label>
+        <label class="field">Email<input id="email" type="email" required></label>
+        <label class="field">Department<select id="department" required><option value="">Loading departments…</option></select></label>
+      </div>
+    </form>
+  </section>
 
-    <main>
+  <section class="app-panel">
+    <h2>Capture or upload samples</h2>
+    <div class="panel-grid">
+      <div><h3>Webcam</h3><video id="camera" autoplay muted playsinline aria-label="Camera preview"></video>
+        <div class="form-actions"><button id="startCamera" class="button button-secondary" type="button">Start camera</button>
+          <button id="capture" class="button button-secondary" type="button" disabled>Capture sample</button></div></div>
+      <div><h3>Image files</h3><label class="field">Choose up to 30 images<input id="imageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+        <p class="muted">JPEG, PNG, and WebP files are accepted. Keep one face visible per image.</p></div>
+    </div>
+    <canvas id="canvas" hidden></canvas>
+    <div class="form-actions"><strong id="sampleCount">0 / 30 samples</strong><progress id="progress" max="30" value="0"></progress>
+      <button id="clearSamples" class="button button-secondary" type="button">Clear samples</button>
+      <button id="register" class="button button-primary" type="button" disabled>Save enrollment</button></div>
+    <div id="gallery" class="sample-gallery"></div>
+    <p id="enrollmentStatus" class="status-message" role="status" aria-live="polite">Camera is off.</p>
+  </section>
+</div>
+{% endblock %}
 
-        <h2>Students</h2>
-
-        <p>Student list will appear here later.</p>
-
-        <nav>
-            <a href="admin-dashboard.html">Admin Dashboard</a>
-            <a href="teacher-dashboard.html">Teacher Dashboard</a>
-            <a href="student-dashboard.html">Student Dashboard</a>
-            <a href="take-attendance.html">Take Attendance</a>
-            <a href="attendance-records.html">Attendance Records</a>
-            <a href="analytics.html">Analytics</a>
-        </nav>
-
-    </main>
-
-</body>
-
-</html>
+{% block scripts %}
+<script>
+const api=window.SmartAttend.api, byId=id=>document.getElementById(id);
+const video=byId("camera"), canvas=byId("canvas"), gallery=byId("gallery");
+const samples=[], objectUrls=[]; let stream=null, students=[], departments=new Map(), registered=false;
+const requiredSamples=30;
+function setStatus(id,message,tone=""){const node=byId(id);node.textContent=message;node.dataset.tone=tone;}
+function explainAccessError(error){return /not linked to a teacher (record|profile)/i.test(error.message)?"Your teacher login is not linked to a profile. Sign in as admin, edit the matching teacher in Admin Dashboard → Teachers, and make its email match your login email. Then sign out and back in.":error.message;}
+function displaySample(blob,index){const image=document.createElement("img");image.alt=`Sample ${index}`;const url=URL.createObjectURL(blob);objectUrls.push(url);image.src=url;image.loading="lazy";gallery.append(image);}
+function updateProgress(){byId("sampleCount").textContent=`${samples.length} / ${requiredSamples} samples`;byId("progress").value=samples.length;byId("register").disabled=samples.length!==requiredSamples||registered;byId("capture").disabled=!stream||samples.length>=requiredSamples;}
+function fillDepartmentOptions(select){select.replaceChildren();const first=document.createElement("option");first.value="";first.textContent=departments.size?"Select department":"Create a department first";select.append(first);departments.forEach((name,id)=>{const option=document.createElement("option");option.value=id;option.textContent=name;select.append(option);});}
+function appendStudentOptions(){const select=byId("existingStudent");select.replaceChildren();const first=document.createElement("option");first.value="";first.textContent="Register a new student";select.append(first);students.filter(student=>!student.face_enrolled).forEach(student=>{const option=document.createElement("option");option.value=student.id;option.textContent=`${student.name} — ${student.roll_number}`;select.append(option);});if(select.options.length===1)first.textContent="No existing students need enrollment";}
+function renderRoster(){const tbody=byId("studentRoster");tbody.replaceChildren();if(!students.length){const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=7;cell.textContent="No students match this search. Create a student record above.";row.append(cell);tbody.append(row);return;}students.forEach(student=>{const row=document.createElement("tr");const values=[student.name,student.roll_number,student.email,departments.get(student.department_id)||student.department_name||"Department unavailable",student.account_exists?"Login linked":"No login",student.face_enrolled?`${student.embedding_count} usable vectors`:(student.has_embedding?"Re-enrollment needed":"Not enrolled")];values.forEach(value=>{const cell=document.createElement("td");cell.textContent=value;row.append(cell);});const actions=document.createElement("td");if(!student.account_exists&&window.SmartAttend.currentUser?.role==="admin"){const link=document.createElement("button");link.type="button";link.className="button button-primary";link.textContent="Create login";link.addEventListener("click",async()=>{link.disabled=true;try{const creds=await api(`/api/students/${student.id}/account`,{method:"POST"});showCredentials(student.name,creds);await loadStudents();}catch(error){setStatus("rosterStatus",error.message,"error");link.disabled=false;}});actions.append(link);}else if(student.account_exists&&window.SmartAttend.currentUser?.role==="admin"){const reset=document.createElement("button");reset.type="button";reset.className="button button-secondary";reset.textContent="Reset login";reset.addEventListener("click",async()=>{if(!confirm(`Issue a new temporary password for ${student.name}? Their current password will stop working.`))return;reset.disabled=true;try{const creds=await api(`/api/students/${student.id}/account/reset-password`,{method:"POST"});showCredentials(student.name,creds);}catch(error){setStatus("rosterStatus",error.message,"error");reset.disabled=false;}});actions.append(reset);}const edit=document.createElement("button");edit.type="button";edit.className="button button-secondary";edit.textContent="Edit";edit.addEventListener("click",()=>editStudent(student));actions.append(edit);if(!student.face_enrolled){const enroll=document.createElement("button");enroll.type="button";enroll.className="button button-primary";enroll.textContent="Enroll Face";enroll.addEventListener("click",()=>{byId("existingStudent").value=student.id;byId("existingStudent").dispatchEvent(new Event("change"));byId("enrollmentPanel").scrollIntoView({behavior:"smooth"});});actions.append(enroll);}row.append(actions);tbody.append(row);});}
+async function loadDepartments(){try{const result=await api("/api/departments");departments=new Map(result.map(item=>[item.id,item.name]));fillDepartmentOptions(byId("newDepartment"));fillDepartmentOptions(byId("department"));if(byId("createStudentStatus").dataset.tone==="error")setStatus("createStudentStatus","Departments loaded. You can continue.","success");return true;}catch(error){setStatus("createStudentStatus",`Could not load departments: ${explainAccessError(error)}`,"error");for(const id of ["newDepartment","department"]){const select=byId(id);select.replaceChildren();const option=document.createElement("option");option.value="";option.textContent="Departments unavailable — retry";select.append(option);}return false;}}
+let rosterLoadSequence=0;
+async function loadStudents(){const requestId=++rosterLoadSequence,search=byId("studentSearch").value.trim(),buttons=[byId("searchStudents"),byId("refreshStudents")];buttons.forEach(button=>button.disabled=true);byId("studentRoster").innerHTML="<tr><td colspan='7'>Loading students…</td></tr>";try{const result=await api(`/api/students${search?`?search=${encodeURIComponent(search)}`:""}`);if(requestId!==rosterLoadSequence)return;students=result;renderRoster();appendStudentOptions();setStatus("rosterStatus",`${students.length} student record(s) shown.`);}catch(error){if(requestId!==rosterLoadSequence)return;byId("studentRoster").innerHTML="<tr><td colspan='7'>Could not load student records.</td></tr>";setStatus("rosterStatus",error.message,"error");}finally{if(requestId===rosterLoadSequence)buttons.forEach(button=>button.disabled=false);}}
+byId("searchStudents").addEventListener("click",loadStudents);byId("refreshStudents").addEventListener("click",loadStudents);byId("studentSearch").addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();loadStudents();}});
+byId("retryStudentData").addEventListener("click",async event=>{const button=event.currentTarget;if(button.disabled)return;button.disabled=true;button.textContent="Reloading…";try{await loadDepartments();await loadStudents();}finally{button.disabled=false;button.textContent="Reload departments & roster";}});
+function showCredentials(name,c){const box=document.createElement("section");box.className="app-panel";const title=document.createElement("h2");title.textContent=`One-time login credentials for ${name}`;const note=document.createElement("p");note.textContent="Copy and provide these privately now. The student must change the temporary password at first sign-in.";const pre=document.createElement("pre");pre.textContent=`Username: ${c.username}\nEmail: ${c.email}\nTemporary password: ${c.temporary_password}`;const close=document.createElement("button");close.type="button";close.className="button button-secondary";close.textContent="I copied these";close.addEventListener("click",()=>box.remove());box.append(title,note,pre,close);document.querySelector(".page-stack").prepend(box);box.scrollIntoView({behavior:"smooth"});}
+byId("createStudentForm").addEventListener("submit",async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]');if(button.disabled)return;button.disabled=true;button.textContent="Saving…";setStatus("createStudentStatus","Saving student and linked account…");try{const student=await api("/api/students",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:byId("newName").value.trim(),roll_number:byId("newRoll").value.trim(),email:byId("newEmail").value.trim(),department_id:Number(byId("newDepartment").value)})});form.reset();setStatus("createStudentStatus",`${student.name} saved. Select them below to enroll their face.`,"success");if(student.initial_credentials)showCredentials(student.name,student.initial_credentials);await loadStudents();byId("existingStudent").value=student.id;byId("existingStudent").dispatchEvent(new Event("change"));}catch(error){setStatus("createStudentStatus",error.message,"error");}finally{button.disabled=false;button.textContent="Save student";}});
+async function editStudent(student){const name=prompt("Student name",student.name);if(name===null)return;const roll_number=prompt("Roll number",student.roll_number);if(roll_number===null)return;const email=prompt("Email",student.email);if(email===null)return;const department_id=Number(prompt("Department ID",student.department_id));if(!department_id)return;try{await api(`/api/students/${student.id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,roll_number,email,department_id})});setStatus("rosterStatus","Student updated. Historical attendance was preserved.","success");await loadStudents();}catch(error){setStatus("rosterStatus",error.message,"error");}}
+byId("existingStudent").addEventListener("change",event=>{const student=students.find(item=>String(item.id)===event.target.value);const fields=[["name",student?.name||""],["roll",student?.roll_number||""],["email",student?.email||""],["department",student?.department_id||""]];fields.forEach(([id,value])=>{byId(id).value=value;byId(id).disabled=Boolean(student);});setStatus("enrollmentStatus",student?`Selected ${student.name}. Saved student details will be used.`:"Enter a new student or select an existing one.");});
+byId("startCamera").addEventListener("click",async()=>{try{if(!navigator.mediaDevices?.getUserMedia)throw Error("Camera access requires localhost or HTTPS in a supported browser.");stream?.getTracks().forEach(track=>track.stop());stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=stream;await video.play();updateProgress();setStatus("enrollmentStatus","Camera connected. Capture varied face angles, or upload image files.");}catch(error){setStatus("enrollmentStatus",`Camera error: ${error.message}`,"error");}});
+byId("capture").addEventListener("click",()=>{if(!stream||!video.videoWidth)return setStatus("enrollmentStatus","Camera is not ready.","error");if(samples.length>=requiredSamples)return;canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);canvas.toBlob(blob=>{if(!blob)return setStatus("enrollmentStatus","Image capture failed. Try again.","error");samples.push(blob);displaySample(blob,samples.length);updateProgress();setStatus("enrollmentStatus",`Captured sample ${samples.length}.`);},"image/jpeg",.9);});
+byId("imageFiles").addEventListener("change",event=>{const files=[...event.target.files];if(samples.length+files.length>requiredSamples){setStatus("enrollmentStatus",`Choose at most ${requiredSamples-samples.length} more image(s).`,"error");event.target.value="";return;}for(const file of files){if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>8*1024*1024){setStatus("enrollmentStatus",`${file.name} is not a supported image under 8 MB.`,"error");continue;}samples.push(file);displaySample(file,samples.length);}event.target.value="";updateProgress();setStatus("enrollmentStatus",`${samples.length} of ${requiredSamples} samples selected.`);});
+byId("clearSamples").addEventListener("click",()=>{samples.length=0;registered=false;gallery.replaceChildren();objectUrls.splice(0).forEach(URL.revokeObjectURL);updateProgress();setStatus("enrollmentStatus","Samples cleared. Capture or upload new images.");});
+byId("register").addEventListener("click",async()=>{if(!byId("enrollmentForm").reportValidity()||samples.length!==requiredSamples)return;const data=new FormData();data.append("department_id",byId("department").value);const selected=byId("existingStudent").value;if(selected)data.append("student_id",selected);else{data.append("name",byId("name").value.trim());data.append("roll_number",byId("roll").value.trim());data.append("email",byId("email").value.trim());}samples.forEach((file,index)=>data.append("images",file,`sample_${index+1}.jpg`));byId("register").disabled=true;setStatus("enrollmentStatus","Validating images and generating ArcFace vectors…");try{const result=await api("/api/students/enroll-face",{method:"POST",body:data,timeout:180000});registered=true;stream?.getTracks().forEach(track=>track.stop());stream=null;video.srcObject=null;setStatus("enrollmentStatus",`Enrollment saved for ${result.name}. ${result.embeddings_processed} vectors persisted; ${result.samples_rejected} samples rejected.`,"success");if(result.initial_credentials)showCredentials(result.name,result.initial_credentials);await loadStudents();}catch(error){setStatus("enrollmentStatus",`Enrollment was not confirmed: ${error.message}`,"error");}finally{updateProgress();}});
+window.addEventListener("pagehide",()=>{stream?.getTracks().forEach(track=>track.stop());objectUrls.forEach(URL.revokeObjectURL);});
+loadDepartments().then(loadStudents);updateProgress();
+</script>
+{% endblock %}

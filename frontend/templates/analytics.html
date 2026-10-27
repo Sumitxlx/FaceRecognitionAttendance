@@ -1,36 +1,52 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAttend - Analytics</title>
-</head>
-
-<body>
-
-    <header>
-        <h1>SmartAttend</h1>
-        <p>Analytics</p>
-    </header>
-
-    <main>
-
-        <h2>Attendance Analytics</h2>
-
-        <p>Analytics and charts will appear here later.</p>
-
-        <nav>
-            <a href="admin-dashboard.html">Admin Dashboard</a>
-            <a href="teacher-dashboard.html">Teacher Dashboard</a>
-            <a href="student-dashboard.html">Student Dashboard</a>
-            <a href="take-attendance.html">Take Attendance</a>
-            <a href="students.html">Students</a>
-            <a href="attendance-records.html">Attendance Records</a>
-        </nav>
-
-    </main>
-
-</body>
-
-</html>
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Attendance analytics{% endblock %}
+{% block breadcrumb %}Analytics{% endblock %}
+{% block content %}
+<section class="page-header"><div><p class="page-eyebrow">ANALYTICS</p><h1 class="page-title">Attendance analytics</h1>
+  <p class="page-description">Coverage, trends, and low-attendance students calculated from saved records.</p></div>
+  <button id="retryAnalytics" class="button button-secondary" type="button">Refresh</button></section>
+<div class="page-stack">
+  <section id="analyticsMetrics" class="stats-grid" aria-live="polite"><article class="stat-card"><div class="stat-value">Loading…</div><div class="stat-label">Database analytics</div></article></section>
+  <p id="analyticsStatus" class="status-message" role="status" aria-live="polite"></p>
+  <section class="app-panel"><h2>Confirmed check-ins by day</h2><p class="muted">Counts are from saved present records in the last 14 days.</p><div id="trendChart" class="chart-placeholder">Loading trend…</div></section>
+  <section class="panel-grid">
+    <article class="app-panel"><h2>Subject attendance</h2><p class="muted">For staff: present records ÷ eligible student-session opportunities. For students: your present sessions ÷ completed subject sessions.</p>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Subject</th><th>Completed sessions</th><th>Present / eligible</th><th>Rate</th></tr></thead><tbody id="subjectRows"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></article>
+    <article class="app-panel"><h2>Students below threshold</h2><p id="thresholdNote" class="muted">Loading configured policy…</p>
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>Student</th><th>Present</th><th>Eligible sessions</th><th>Rate</th></tr></thead><tbody id="defaulterRows"><tr><td colspan="4">Loading…</td></tr></tbody></table></div></article>
+  </section>
+  <section class="app-panel"><h2>Student-wise attendance</h2><p class="muted">Percentages use only completed eligible sessions. Students without a finalized session have no percentage yet.</p>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th>Student</th><th>Present sessions</th><th>Eligible sessions</th><th>Rate</th><th>Threshold</th></tr></thead><tbody id="studentRows"><tr><td colspan="5">Loading…</td></tr></tbody></table></div></section>
+  <section class="app-panel"><h2>Attendance policy</h2><p id="policyText" class="muted">Loading policy…</p></section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const api=window.SmartAttend.api,el=id=>document.getElementById(id);
+function addMetric(target,label,value,detail=""){const card=document.createElement("article");card.className="stat-card";const number=document.createElement("div");number.className="stat-value";number.textContent=value??"—";const caption=document.createElement("div");caption.className="stat-label";caption.textContent=label;card.append(number,caption);if(detail){const small=document.createElement("small");small.textContent=detail;card.append(small);}target.append(card);}
+function fillTable(target,rows,columns,empty){target.replaceChildren();if(!rows.length){const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=columns.length;cell.textContent=empty;row.append(cell);target.append(row);return;}rows.forEach(item=>{const row=document.createElement("tr");columns.forEach(column=>{const cell=document.createElement("td");cell.textContent=column(item);row.append(cell);});target.append(row);});}
+function drawTrend(days){const chart=el("trendChart");chart.replaceChildren();if(!days.some(day=>day.count)){chart.textContent="No saved check-ins in the last 14 days.";return;}const max=Math.max(1,...days.map(day=>day.count)),bars=document.createElement("div");bars.className="attendance-bars";days.forEach(day=>{const col=document.createElement("div");col.className="attendance-bar-column";const count=document.createElement("span");count.textContent=day.count;const bar=document.createElement("div");bar.className="attendance-bar";bar.style.height=`${Math.max(day.count?8:2,day.count/max*130)}px`;bar.title=`${day.date}: ${day.count} check-ins`;const label=document.createElement("small");label.textContent=day.date.slice(5);col.append(count,bar,label);bars.append(col);});chart.append(bars);}
+let analyticsBusy=false;
+async function loadAnalytics(){
+  if(analyticsBusy)return;
+  analyticsBusy=true;
+  const button=el("retryAnalytics"),metrics=el("analyticsMetrics");
+  button.disabled=true;button.textContent="Refreshing…";metrics.replaceChildren();el("analyticsStatus").textContent="Loading analytics…";
+  try{
+    const data=await api("/api/analytics");
+    [["Registered students",data.student_count],["Face enrollment",data.enrollment_coverage_percent===null?"—":`${data.enrollment_coverage_percent}%`],["Sessions held",data.session_count],["Completed sessions",data.completed_session_count],["Saved check-ins",data.check_ins],["Attendance rate",data.attendance_percentage===null?"—":`${data.attendance_percentage}%`],["Students below threshold",data.defaulter_count]].forEach(([label,value])=>addMetric(metrics,label,value));
+    drawTrend(data.daily_check_ins);
+    fillTable(el("subjectRows"),data.subject_attendance,[item=>`${item.subject} (${item.code})`,item=>item.completed_sessions,item=>`${item.present_records} / ${item.eligible_attendance_opportunities}`,item=>item.attendance_percentage===null?"No completed sessions":`${item.attendance_percentage}%`],"No subjects or finalized sessions yet.");
+    fillTable(el("studentRows"),data.student_attendance,[item=>`${item.student_name} (${item.roll_number})`,item=>item.attended_sessions,item=>item.eligible_completed_sessions,item=>item.attendance_percentage===null?"No completed sessions":`${item.attendance_percentage}%`,item=>!item.eligible_completed_sessions?"Not evaluated":item.at_risk?"Below threshold":"On track"],"No students in this reporting scope.");
+    fillTable(el("defaulterRows"),data.defaulters,[item=>`${item.student_name} (${item.roll_number})`,item=>item.attended_sessions,item=>item.eligible_completed_sessions,item=>`${item.attendance_percentage}%`],data.attendance_denominator?`No students below ${data.attendance_threshold_percent}%.`:"No completed sessions; attendance risk is not calculated yet.");
+    el("thresholdNote").textContent=`Configured threshold: ${data.attendance_threshold_percent}%. Enrollment coverage is ${data.enrolled_student_count} of ${data.student_count} students.`;
+    el("policyText").textContent=data.attendance_policy;
+    el("analyticsStatus").textContent=`Updated from ${data.check_ins} saved present record(s) across ${data.completed_session_count} completed session(s).`;
+  }catch(error){
+    el("analyticsStatus").textContent=error.message;metrics.textContent="Analytics unavailable.";el("trendChart").textContent=error.message;
+    for(const [id,span] of [["subjectRows",4],["defaulterRows",4],["studentRows",5]]){const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=span;cell.textContent="Analytics could not be loaded.";row.append(cell);el(id).replaceChildren(row);}
+  }finally{analyticsBusy=false;button.disabled=false;button.textContent="Refresh";}
+}
+el("retryAnalytics").addEventListener("click",loadAnalytics);loadAnalytics();
+</script>
+{% endblock %}

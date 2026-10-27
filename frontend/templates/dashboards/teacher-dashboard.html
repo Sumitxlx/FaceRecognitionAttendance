@@ -27,7 +27,7 @@ Dashboard
         </p>
 
         <h1 class="page-title">
-            Good morning, Teacher
+            Teacher dashboard
         </h1>
 
         <p class="page-description">
@@ -37,16 +37,10 @@ Dashboard
     </div>
 
 
-    <a
-        href="/take-attendance"
-        class="primary-button"
-    >
-
-        <span>+</span>
-
-        Start Attendance
-
-    </a>
+    <div class="form-actions dashboard-header-actions">
+        <button id="refreshTeacherDashboard" class="button button-secondary" type="button">Refresh dashboard</button>
+        <a href="/take-attendance" class="primary-button"><span>+</span>Start attendance</a>
+    </div>
 
 </section>
 
@@ -82,19 +76,17 @@ Dashboard
 
             </div>
 
-            <span class="stat-trend positive">
-                ↑ 3.2%
-            </span>
+
 
         </div>
 
 
-        <div class="stat-value">
-            86.4%
+        <div class="stat-value" data-stat="check_ins">
+            —
         </div>
 
         <div class="stat-label">
-            Overall attendance
+            Check-ins recorded
         </div>
 
     </article>
@@ -133,12 +125,12 @@ Dashboard
         </div>
 
 
-        <div class="stat-value">
-            142
+        <div class="stat-value" data-stat="student_count">
+            —
         </div>
 
         <div class="stat-label">
-            Total students
+            Students in scope
         </div>
 
     </article>
@@ -179,19 +171,19 @@ Dashboard
         </div>
 
 
-        <div class="stat-value">
-            12
+        <div class="stat-value" data-stat="session_count">
+            —
         </div>
 
         <div class="stat-label">
-            Sessions this week
+            Sessions held
         </div>
 
     </article>
 
 
 
-    <!-- At Risk -->
+    <!-- Active sessions -->
 
     <article class="stat-card">
 
@@ -226,12 +218,12 @@ Dashboard
         </div>
 
 
-        <div class="stat-value">
-            03
+        <div class="stat-value" data-stat="defaulter_count">
+            —
         </div>
 
         <div class="stat-label">
-            Students at risk
+            Below attendance threshold
         </div>
 
     </article>
@@ -264,125 +256,19 @@ Dashboard
                 </h2>
 
                 <p>
-                    Weekly attendance performance
+                    Saved check-ins over the last 14 days
                 </p>
 
             </div>
 
 
-            <button
-                class="card-filter"
-                type="button"
-            >
-                This week
-                <span>⌄</span>
-            </button>
+            <span class="card-filter" aria-label="Chart date range">Last 14 days</span>
 
         </div>
 
 
-        <!-- Fake chart area for now -->
-
-        <div class="chart-placeholder">
-
-
-            <div class="chart-y-axis">
-
-                <span>100%</span>
-                <span>75%</span>
-                <span>50%</span>
-                <span>25%</span>
-                <span>0%</span>
-
-            </div>
-
-
-            <div class="chart-area">
-
-                <div class="chart-grid-lines">
-
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-
-                </div>
-
-
-                <svg
-                    class="attendance-line"
-                    viewBox="0 0 600 220"
-                    preserveAspectRatio="none"
-                >
-
-                    <defs>
-
-                        <linearGradient
-                            id="chartGradient"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                        >
-
-                            <stop
-                                offset="0%"
-                                stop-color="#6366f1"
-                                stop-opacity="0.22"
-                            />
-
-                            <stop
-                                offset="100%"
-                                stop-color="#6366f1"
-                                stop-opacity="0"
-                            />
-
-                        </linearGradient>
-
-                    </defs>
-
-
-                    <path
-                        d="M0 150
-                           C70 140 80 115 150 125
-                           C210 135 220 90 285 100
-                           C350 110 365 65 420 80
-                           C475 95 510 45 600 55
-                           L600 220
-                           L0 220 Z"
-                        fill="url(#chartGradient)"
-                    />
-
-
-                    <path
-                        d="M0 150
-                           C70 140 80 115 150 125
-                           C210 135 220 90 285 100
-                           C350 110 365 65 420 80
-                           C475 95 510 45 600 55"
-                        fill="none"
-                        stroke="#6366f1"
-                        stroke-width="3"
-                    />
-
-                </svg>
-
-
-                <div class="chart-days">
-
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-
-                </div>
-
-            </div>
-
-        </div>
+        <p>Daily saved check-ins across the last 14 days. Missed detections are not treated as attendance records.</p>
+        <div id="dashboardTrend" class="chart-placeholder" aria-live="polite">Loading saved check-ins…</div>
 
 
     </article>
@@ -421,161 +307,7 @@ Dashboard
         </div>
 
 
-        <div class="session-list">
-
-
-            <!-- Session 1 -->
-
-            <div class="session-item">
-
-                <div class="session-icon">
-                    DB
-                </div>
-
-
-                <div class="session-info">
-
-                    <strong>
-                        Database Systems
-                    </strong>
-
-                    <span>
-                        Today · 10:00 AM
-                    </span>
-
-                </div>
-
-
-                <div class="session-result">
-
-                    <strong>
-                        42/45
-                    </strong>
-
-                    <span class="status-badge success">
-                        93%
-                    </span>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- Session 2 -->
-
-            <div class="session-item">
-
-                <div class="session-icon">
-                    OS
-                </div>
-
-
-                <div class="session-info">
-
-                    <strong>
-                        Operating Systems
-                    </strong>
-
-                    <span>
-                        Today · 12:00 PM
-                    </span>
-
-                </div>
-
-
-                <div class="session-result">
-
-                    <strong>
-                        39/44
-                    </strong>
-
-                    <span class="status-badge success">
-                        89%
-                    </span>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- Session 3 -->
-
-            <div class="session-item">
-
-                <div class="session-icon">
-                    CN
-                </div>
-
-
-                <div class="session-info">
-
-                    <strong>
-                        Computer Networks
-                    </strong>
-
-                    <span>
-                        Yesterday · 11:00 AM
-                    </span>
-
-                </div>
-
-
-                <div class="session-result">
-
-                    <strong>
-                        34/42
-                    </strong>
-
-                    <span class="status-badge warning">
-                        81%
-                    </span>
-
-                </div>
-
-            </div>
-
-
-
-            <!-- Session 4 -->
-
-            <div class="session-item">
-
-                <div class="session-icon">
-                    AI
-                </div>
-
-
-                <div class="session-info">
-
-                    <strong>
-                        Artificial Intelligence
-                    </strong>
-
-                    <span>
-                        Yesterday · 2:00 PM
-                    </span>
-
-                </div>
-
-
-                <div class="session-result">
-
-                    <strong>
-                        41/43
-                    </strong>
-
-                    <span class="status-badge success">
-                        95%
-                    </span>
-
-                </div>
-
-            </div>
-
-
-        </div>
+        <div id="dashboardSessions" class="session-list" aria-live="polite">Loading recent sessions…</div>
 
 
     </article>
@@ -696,121 +428,23 @@ Dashboard
 
 
 
-    <!-- At Risk -->
-
     <article class="dashboard-card">
-
-
         <div class="card-header">
-
-            <div>
-
-                <h2>
-                    Students at risk
-                </h2>
-
-                <p>
-                    Attendance below 75%
-                </p>
-
-            </div>
-
-
-            <a
-                href="/analytics"
-                class="text-link"
-            >
-                View analytics →
-            </a>
-
+            <div><h2>Attendance watchlist</h2>
+                <p>Students below the configured threshold across closed sessions</p></div>
+            <a href="/analytics" class="text-link">View analytics →</a>
         </div>
-
-
-        <div class="risk-list">
-
-
-            <div class="risk-item">
-
-                <div class="student-avatar">
-                    H
-                </div>
-
-                <div class="risk-student">
-
-                    <strong>
-                        Himanshu
-                    </strong>
-
-                    <span>
-                        Database Systems
-                    </span>
-
-                </div>
-
-                <span class="risk-percentage">
-                    68%
-                </span>
-
-            </div>
-
-
-            <div class="risk-item">
-
-                <div class="student-avatar">
-                    P
-                </div>
-
-                <div class="risk-student">
-
-                    <strong>
-                        Priya
-                    </strong>
-
-                    <span>
-                        Computer Networks
-                    </span>
-
-                </div>
-
-                <span class="risk-percentage">
-                    71%
-                </span>
-
-            </div>
-
-
-            <div class="risk-item">
-
-                <div class="student-avatar">
-                    S
-                </div>
-
-                <div class="risk-student">
-
-                    <strong>
-                        Sumit
-                    </strong>
-
-                    <span>
-                        Operating Systems
-                    </span>
-
-                </div>
-
-                <span class="risk-percentage">
-                    73%
-                </span>
-
-            </div>
-
-
-        </div>
-
-
+        <ul id="dashboardDefaulters" class="risk-list" aria-live="polite">
+            <li>Loading attendance coverage…</li>
+        </ul>
     </article>
 
 
+
+
 </section>
+
+<p id="dashboardStatus" class="status-message" role="status" aria-live="polite"></p>
 
 
 {% endblock %}

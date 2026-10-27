@@ -1,48 +1,30 @@
-# =========================
-# Virtual Environment
-# =========================
-
+# Python environments
 venv/
 .venv/
 env/
 
-
-# =========================
-# Python
-# =========================
-
+# Python bytecode and test/tool caches
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-
-# =========================
-# VS Code
-# =========================
-
+# Local editor and operating system files
 .vscode/
-
-
-# =========================
-# macOS
-# =========================
-
+.idea/
 .DS_Store
+Thumbs.db
 
-
-# =========================
-# Dataset
-# Keep folder, ignore actual images/data
-# =========================
-
+# Local face datasets: keep only the instructions file
 dataset/*
 !dataset/README.md
 
-
-# =========================
-# Generated Embeddings / Models
-# =========================
-
-models/embeddings.pkl
+# Generated models and embeddings
+models/*
+!models/README.md
 *.pkl
 *.pickle
 *.joblib
@@ -50,36 +32,28 @@ models/embeddings.pkl
 *.keras
 *.onnx
 
-
-# =========================
-# Database
-# =========================
-
+# Local databases and database backups
 *.db
+*.db-*
+*.db.*
 *.sqlite
 *.sqlite3
+*.sqlite-*
+*.sqlite3-*
 
-
-# =========================
-# Environment / Secrets
-# =========================
-
+# Environment variables and secrets; keep a safe template if present
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
-
-# =========================
-# Uploads / Temporary Face Images
-# =========================
-
+# Uploaded images and other local uploads
 uploads/*
 !uploads/README.md
 
-
-# =========================
-# Logs
-# =========================
-
+# Logs and generated build output
 logs/
 *.log
+build/
+dist/

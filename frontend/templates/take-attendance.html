@@ -1,41 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Live attendance{% endblock %}
+{% block breadcrumb %}Take attendance{% endblock %}
+{% block content %}
+<section class="page-header"><div><p class="page-eyebrow">ATTENDANCE</p><h1 class="page-title">Live attendance</h1>
+  <p class="page-description">Open a persisted session, use the live camera, and review every saved check-in.</p></div><button id="refreshAttendanceData" class="button button-secondary" type="button">Refresh subject lists &amp; history</button></section>
+<div class="page-stack">
+  <section class="app-panel">
+    <h2>Start a session</h2>
+    <div class="form-grid">
+      <label id="subjectField" class="field"><span id="subjectLabel">Class / subject</span><select id="subjectId" required><option value="">Loading subjects…</option></select></label>
+      <label id="teacherField" class="field" hidden>Session teacher<select id="teacherId"><option value="">Loading teachers…</option></select></label>
+      <div class="form-actions"><button id="start" class="button button-primary" type="button" disabled>Start Attendance</button>
+        <button id="stop" class="button button-secondary" type="button" disabled>Finish Attendance</button></div>
+    </div>
+    <p id="status" class="status-message" role="status" aria-live="polite">Select a subject to begin.</p>
+    <div class="panel-grid" aria-live="polite">
+      <div class="metric-tile"><strong id="sessionStatus">Not started</strong><span>Session status</span></div>
+      <div class="metric-tile"><strong id="elapsed">00:00</strong><span>Elapsed time</span></div>
+      <div class="metric-tile"><strong id="presentCount">0</strong><span>Saved present records</span></div>
+      <div class="metric-tile"><strong id="unknownCount">0</strong><span>Unmatched frames this session</span></div>
+    </div>
+  </section>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAttend - Take Attendance</title>
-</head>
+  <section class="app-panel">
+    <h2>Camera preview</h2><video id="camera" autoplay muted playsinline aria-label="Live classroom camera preview"></video>
+    <canvas id="frame" hidden></canvas>
+    <div class="panel-grid" style="margin-top:16px">
+      <div><h3>Saved check-ins</h3><ul id="presentList" class="risk-list"><li>No check-ins recorded.</li></ul></div>
+      <div><h3>Manual roll-call entry or correction</h3>
+        <p class="muted">Staff entries are labelled manual and audited with the acting account, status change, timestamp, and note.</p>
+        <form id="manualForm" class="page-stack">
+          <label class="field">Student<select id="manualStudent" required><option value="">Start a session first</option></select></label>
+          <label class="field">Status<select id="manualStatus"><option value="present">Present</option><option value="absent">Absent (explicit staff decision)</option></select></label>
+          <label class="field">Reason / correction note<textarea id="manualNote" maxlength="500" placeholder="Optional note"></textarea></label>
+          <button id="manualSubmit" class="button button-secondary" type="submit" disabled>Save manual entry</button>
+        </form><p id="manualStatusMessage" class="status-message" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
 
-<body>
+  <section class="app-panel"><h2>Session history</h2><div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Date</th><th>Subject</th><th>Teacher</th><th>Status</th><th>Present</th><th>Records</th><th>Action</th></tr></thead>
+    <tbody id="sessionHistory"><tr><td colspan="7">Loading sessions…</td></tr></tbody>
+  </table></div><p id="historyStatus" class="status-message" role="status"></p></section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const api=window.SmartAttend.api,byId=id=>document.getElementById(id);
+const video=byId("camera"),canvas=byId("frame"),startButton=byId("start"),stopButton=byId("stop");
+let stream=null,sessionId=null,frameTimer=null,elapsedTimer=null,sessionStartedAt=null,busy=false,unmatched=0,optionsLoadSequence=0,historyLoadSequence=0,activeSessions=[],currentRole=null;
+function say(message,tone=""){byId("status").textContent=message;byId("status").dataset.tone=tone;}
+function explainAccessError(error){return /not linked to a teacher (record|profile)/i.test(error.message)?"This teacher login needs an administrator link. Open Admin Dashboard → Get one class ready, choose the existing teacher profile and login, then retry.":error.message;}
+function updateStartAvailability(){const subjectId=Number(byId("subjectId").value),teacherId=Number(byId("teacherId").value);const active=activeSessions.find(item=>item.status==="active"&&item.subject_id===subjectId&&(currentRole!=="admin"||item.teacher_id===teacherId));startButton.disabled=Boolean(sessionId)||!subjectId||(currentRole==="admin"&&!teacherId)||Boolean(active);if(active)say(`Session ${active.id} is already active for this class. Review session history and finish or cancel it before starting another.`,"error");}
+async function loadOptions(){
+  const requestId=++optionsLoadSequence,select=byId("subjectId");
+  let loadedSubjects=[];
+  startButton.disabled=true;
+  select.disabled=true;
+  select.replaceChildren();
+  const loading=document.createElement("option");
+  loading.value="";loading.textContent="Loading subjects…";select.append(loading);
+  try{
+    const subjects=await api("/api/subjects");
+    if(requestId!==optionsLoadSequence)return;
+    if(!Array.isArray(subjects))throw Error("The subjects service returned an invalid response.");
+    loadedSubjects=subjects;
+    select.replaceChildren();
+    const first=document.createElement("option");
+    first.value="";first.textContent=subjects.length?"Select a subject":"No subjects available";select.append(first);
+    subjects.forEach(subject=>{
+      const option=document.createElement("option");
+      option.value=subject.id;option.textContent=`${subject.department_name||"Class"} · ${subject.name} (${subject.code})`;
+      option.dataset.department=subject.department_id;option.dataset.teacher=subject.teacher_id||"";select.append(option);
+    });
+    select.disabled=!subjects.length;
+    if(!subjects.length){say("No class subjects are available. Ask an administrator to add a subject or assign one in Class setup.","error");return;}
+    say(`${subjects.length} class subject${subjects.length===1?"":"s"} loaded.`);
+  }catch(error){
+    if(requestId!==optionsLoadSequence)return;
+    select.replaceChildren();
+    const unavailable=document.createElement("option");
+    unavailable.value="";unavailable.textContent=/not linked to a teacher (record|profile)/i.test(error.message)?"Teacher account needs admin linking":"Subjects unavailable — refresh to retry";select.append(unavailable);
+    select.disabled=true;say(`Could not load subjects: ${explainAccessError(error)}`,"error");return;
+  }
 
-    <header>
-        <h1>SmartAttend</h1>
-        <p>Take Attendance</p>
-    </header>
-
-    <main>
-
-        <h2>Attendance Session</h2>
-
-        <section>
-            <h3>Camera Area</h3>
-            <p>Camera will appear here later.</p>
-        </section>
-
-        <section>
-            <h3>Present Students</h3>
-            <p>No students marked present yet.</p>
-        </section>
-
-        <nav>
-            <a href="teacher-dashboard.html">Teacher Dashboard</a>
-            <a href="students.html">Students</a>
-            <a href="attendance-records.html">Attendance Records</a>
-        </nav>
-
-    </main>
-
-</body>
-
-</html>
+  const teacherField=byId("teacherField"),teacherSelect=byId("teacherId");
+  try{
+    const user=await api("/api/me");
+    if(requestId!==optionsLoadSequence)return;
+    currentRole=user.role;
+    activeSessions=(await api("/api/attendance/sessions")).filter(item=>item.status==="active");
+    if(requestId!==optionsLoadSequence)return;
+    teacherField.hidden=user.role!=="admin";
+    if(user.role!=="admin"){
+      const subjectLabel=byId("subjectLabel");
+      if(loadedSubjects.length===1){select.value=String(loadedSubjects[0].id);select.disabled=true;subjectLabel.textContent=`My class · ${loadedSubjects[0].department_name} · ${loadedSubjects[0].name}`;say(`Ready for ${loadedSubjects[0].department_name} · ${loadedSubjects[0].name}. Start attendance when the class is ready.`);}
+      else {select.disabled=false;subjectLabel.textContent="Choose class / subject";}
+      updateStartAvailability();
+      return;
+    }
+    byId("subjectLabel").textContent="Class / subject";
+    teacherSelect.disabled=true;
+    teacherSelect.replaceChildren();
+    const firstTeacher=document.createElement("option");
+    firstTeacher.value="";firstTeacher.textContent="Loading teachers…";teacherSelect.append(firstTeacher);
+    const teachers=await api("/api/teachers");
+    if(requestId!==optionsLoadSequence)return;
+    teacherSelect.replaceChildren();
+    const prompt=document.createElement("option");
+    prompt.value="";prompt.textContent=teachers.length?"Select session teacher":"No teachers available";teacherSelect.append(prompt);
+    teachers.forEach(teacher=>{
+      const option=document.createElement("option");
+      option.value=teacher.id;option.textContent=`${teacher.name} (${teacher.email})`;
+      option.dataset.department=teacher.department_id;teacherSelect.append(option);
+    });
+    teacherSelect.disabled=!teachers.length;
+    updateStartAvailability();
+    if(!teachers.length)say("Subjects loaded, but no teachers are set up yet. Add a teacher in Admin Dashboard.","error");
+  }catch(error){
+    if(requestId!==optionsLoadSequence)return;
+    teacherField.hidden=currentRole!=="admin";teacherSelect.disabled=true;teacherSelect.replaceChildren();
+    const unavailable=document.createElement("option");
+    unavailable.value="";unavailable.textContent="Class data unavailable — retry";teacherSelect.append(unavailable);startButton.disabled=true;
+    say(`Subjects loaded, but class availability could not be checked: ${error.message}`,"error");
+  }
+}
+function formatTime(seconds){return `${String(Math.floor(seconds/60)).padStart(2,"0")}:${String(seconds%60).padStart(2,"0")}`;}
+async function refreshCheckins(){if(!sessionId)return;try{const records=await api(`/api/attendance/records?session_id=${sessionId}`);byId("presentCount").textContent=records.filter(row=>row.status==="present").length;const list=byId("presentList");list.replaceChildren();if(!records.length){list.textContent="No attendance records have been saved yet.";return;}records.forEach(record=>{const item=document.createElement("li");const time=record.marked_at?new Date(record.marked_at).toLocaleTimeString():"time unavailable";item.textContent=`${record.student_name} (${record.roll_number}) — ${record.status} · ${time} · ${record.method}${record.marked_by?` by ${record.marked_by}`:""}`;list.append(item);});}catch(error){byId("presentList").textContent=error.message;}}
+async function loadRoster(departmentId){const select=byId("manualStudent");select.replaceChildren();const first=document.createElement("option");first.value="";first.textContent="Loading students…";select.append(first);try{const rows=await api(`/api/students?department_id=${departmentId}`);select.replaceChildren();const empty=document.createElement("option");empty.value="";empty.textContent=rows.length?"Select a student":"No students in this department";select.append(empty);rows.forEach(student=>{const option=document.createElement("option");option.value=student.id;option.textContent=`${student.name} (${student.roll_number})`;select.append(option);});byId("manualSubmit").disabled=!sessionId||!rows.length;}catch(error){select.innerHTML="<option value=''>Students unavailable</option>";byId("manualStatusMessage").textContent=explainAccessError(error);}}
+async function loadHistory(){
+  const requestId=++historyLoadSequence,body=byId("sessionHistory");
+  body.innerHTML="<tr><td colspan='7'>Loading sessions…</td></tr>";
+  try{
+    const rows=await api("/api/attendance/sessions");
+    if(requestId!==historyLoadSequence)return;
+    activeSessions=rows.filter(item=>item.status==="active");
+    if(currentRole)updateStartAvailability();
+    body.replaceChildren();
+    if(!rows.length){body.innerHTML="<tr><td colspan='7'>No sessions have been recorded.</td></tr>";return;}
+    rows.forEach(item=>{
+      const row=document.createElement("tr");
+      [item.session_date,item.subject,item.teacher,item.status,item.check_ins,item.attendance_total].forEach(value=>{const cell=document.createElement("td");cell.textContent=value;row.append(cell);});
+      const action=document.createElement("td"),controls=document.createElement("div");
+      controls.className="session-actions";action.append(controls);
+      if(item.status==="active"){
+        const close=document.createElement("button");
+        close.type="button";close.className="button button-secondary";close.textContent="Close session";
+        close.addEventListener("click",async()=>{
+          if(!confirm(`Close session ${item.id} for ${item.subject} and include it in finalized attendance calculations?`))return;
+          close.disabled=true;
+          try{await api(`/api/attendance/sessions/${item.id}/end`,{method:"POST"});byId("historyStatus").textContent=`Session ${item.id} closed and saved.`;await loadHistory();}
+          catch(error){close.disabled=false;byId("historyStatus").textContent=error.message;}
+        });
+        controls.append(close);
+        if(Number(item.attendance_total)===0){
+          const cancel=document.createElement("button");
+          cancel.type="button";cancel.className="button button-secondary";cancel.textContent="Cancel empty session";
+          cancel.addEventListener("click",async()=>{
+            if(!confirm(`Cancel empty session ${item.id} for ${item.subject}? It will remain in history and will not count toward attendance.`))return;
+            cancel.disabled=true;
+            try{await api(`/api/attendance/sessions/${item.id}/cancel`,{method:"POST"});byId("historyStatus").textContent=`Empty session ${item.id} cancelled; it remains in history and is excluded from attendance calculations.`;await loadHistory();}
+            catch(error){cancel.disabled=false;byId("historyStatus").textContent=error.message;}
+          });
+          controls.append(cancel);
+        }
+      }else action.textContent="—";
+      row.append(action);body.append(row);
+    });
+  }catch(error){if(requestId!==historyLoadSequence)return;body.innerHTML="<tr><td colspan='7'>Could not load session history.</td></tr>";byId("historyStatus").textContent=error.message;}
+}
+async function begin(){startButton.disabled=true;try{const subjectOption=byId("subjectId").selectedOptions[0],subjectId=Number(byId("subjectId").value);if(!subjectId)throw Error("Choose a subject first.");const me=await api("/api/me");const payload={subject_id:subjectId};if(me.role==="admin"){const teacherId=Number(byId("teacherId").value);if(!teacherId)throw Error("Choose the teacher assigned to this session.");const teacherOption=byId("teacherId").selectedOptions[0];if(teacherOption.dataset.department!==subjectOption.dataset.department)throw Error("Select a teacher from the subject's department.");if(subjectOption.dataset.teacher&&Number(subjectOption.dataset.teacher)!==teacherId)throw Error("This subject is assigned to a different teacher.");payload.teacher_id=teacherId;}
+  if(!navigator.mediaDevices?.getUserMedia)throw Error("Camera access requires localhost or HTTPS in a supported browser.");stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=stream;await video.play();const saved=await api("/api/attendance/sessions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});sessionId=saved.session_id;sessionStartedAt=Date.now();unmatched=0;byId("unknownCount").textContent="0";byId("sessionStatus").textContent=`Active · #${sessionId}`;stopButton.disabled=false;startButton.disabled=true;byId("manualSubmit").disabled=false;say(`Session ${sessionId} is active. Attendance saves after a confident match.`);await loadRoster(Number(subjectOption.dataset.department));await refreshCheckins();frameTimer=setInterval(sendFrame,1500);elapsedTimer=setInterval(()=>{if(sessionStartedAt)byId("elapsed").textContent=formatTime(Math.floor((Date.now()-sessionStartedAt)/1000));},1000);await loadHistory();
+ }catch(error){stream?.getTracks().forEach(track=>track.stop());stream=null;video.srcObject=null;if(sessionId){const failed=sessionId;try{await api(`/api/attendance/sessions/${failed}/end`,{method:"POST"});sessionId=null;byId("sessionStatus").textContent="Closed";}catch(closeError){say(`${error.message} Session ${failed} is still open; use Retry closure. ${closeError.message}`,"error");byId("sessionStatus").textContent="Closure pending";stopButton.textContent="Retry closure";stopButton.disabled=false;startButton.disabled=true;return;}}say(error.message,"error");startButton.disabled=false;}}
+async function sendFrame(){if(busy||!stream||!sessionId||video.readyState<2)return;busy=true;try{canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",.85));if(!blob)throw Error("Could not capture a camera frame.");const form=new FormData();form.append("image",blob,"frame.jpg");const result=await api(`/api/attendance/sessions/${sessionId}/recognize`,{method:"POST",body:form,timeout:30000});if(result.recognized){say(result.already_marked?`${result.student_name} is already marked present.`:`Attendance saved for ${result.student_name}.`,"success");await refreshCheckins();}else{unmatched++;byId("unknownCount").textContent=unmatched;say(`${result.reason||"No confident match"}. No attendance record was created.`);}}catch(error){say(error.message,"error");}finally{busy=false;}}
+async function closeSession(){if(frameTimer)clearInterval(frameTimer);if(elapsedTimer)clearInterval(elapsedTimer);frameTimer=elapsedTimer=null;const closing=sessionId;stream?.getTracks().forEach(track=>track.stop());stream=null;video.srcObject=null;sessionStartedAt=null;byId("manualSubmit").disabled=true;if(!closing){say("Camera stopped. No session was active.");startButton.disabled=false;stopButton.disabled=true;return;}byId("sessionStatus").textContent="Closing…";stopButton.disabled=true;startButton.disabled=true;try{await api(`/api/attendance/sessions/${closing}/end`,{method:"POST"});sessionId=null;byId("sessionStatus").textContent="Closed";say(`Session ${closing} closed. Its confirmed records are now included in finalized attendance calculations.`,"success");stopButton.textContent="Finish Attendance";startButton.disabled=false;await loadHistory();}catch(error){sessionId=closing;byId("sessionStatus").textContent="Closure pending";say(`Camera stopped, but the session is still open. Retry closure: ${error.message}`,"error");stopButton.textContent="Retry closure";stopButton.disabled=false;}}
+byId("manualForm").addEventListener("submit",async event=>{event.preventDefault();if(!sessionId){byId("manualStatusMessage").textContent="Start a session first.";return;}const studentId=Number(byId("manualStudent").value);if(!studentId)return;const student=byId("manualStudent").selectedOptions[0].textContent,status=byId("manualStatus").value;if(!confirm(`Save a manual ${status} entry for ${student}? This action is audited.`))return;byId("manualSubmit").disabled=true;try{const result=await api(`/api/attendance/sessions/${sessionId}/manual`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({student_id:studentId,status,note:byId("manualNote").value.trim()})});byId("manualStatusMessage").textContent=`${result.student_name}: ${result.status} saved as ${result.method} (${result.action}).`;byId("manualNote").value="";await refreshCheckins();}catch(error){byId("manualStatusMessage").textContent=error.message;}finally{byId("manualSubmit").disabled=!sessionId;}});
+byId("subjectId").addEventListener("change",updateStartAvailability);byId("teacherId").addEventListener("change",updateStartAvailability);startButton.addEventListener("click",begin);stopButton.addEventListener("click",()=>{if(confirm("Finish attendance and finalize this session for analytics?"))closeSession();});byId("refreshAttendanceData").addEventListener("click",async event=>{const button=event.currentTarget;if(button.disabled)return;button.disabled=true;button.textContent="Refreshing…";try{await Promise.all([loadOptions(),loadHistory()]);}finally{button.disabled=false;button.textContent="Refresh subject lists & history";}});window.addEventListener("pagehide",()=>{if(frameTimer)clearInterval(frameTimer);if(elapsedTimer)clearInterval(elapsedTimer);stream?.getTracks().forEach(track=>track.stop());if(sessionId&&window.SmartAttend.token())fetch(`/api/attendance/sessions/${sessionId}/end`,{method:"POST",headers:{Authorization:`Bearer ${window.SmartAttend.token()}`},keepalive:true}).catch(()=>{});});
+loadOptions();loadHistory();
+</script>
+{% endblock %}

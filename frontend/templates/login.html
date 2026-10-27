@@ -1,58 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/style.css">
-    <title>SmartAttend - Login</title>
-</head>
-
-<body>
-
-    <header>
-        <h1>SmartAttend</h1>
-    </header>
-
-    <main>
-
-        <section>
-            <h2>Welcome Back</h2>
-
-            <p>Sign in to continue to SmartAttend</p>
-
-            <form>
-
-                <label for="email">Email</label>
-                <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                >
-
-
-                <label for="password">Password</label>
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Enter your password"
-                >
-
-   
-
-                <a href="#">Forgot Password?</a>
-
- 
-
-                <a href="admin-dashboard.html">Login</a>
-            </form>
-
-        </section>
-
-    </main>
-
-</body>
-
-</html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartAttend · Sign in</title><link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=ui-refresh-20261027"></head>
+<body><main class="auth-layout"><section class="auth-card">
+  <div class="auth-brand"><span class="auth-brand-mark">SA</span><strong>SmartAttend</strong></div>
+  <h1>Welcome back</h1><p>Sign in with your email or student username.</p>
+  <p id="setupHint" class="status-message" role="status"></p>
+  <form id="loginForm">
+    <label class="field">Email or student username<input type="text" id="email" autocomplete="username" required></label>
+    <label class="field">Password<input type="password" id="password" autocomplete="current-password" required></label>
+    <button type="submit">Sign in</button>
+  </form>
+  <p id="loginStatus" class="status-message" role="status" aria-live="polite"></p>
+  <p class="auth-footer"><a href="/">Back to SmartAttend</a></p>
+</section></main>
+<script>
+document.getElementById("loginForm").addEventListener("submit",async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector("button"),status=document.getElementById("loginStatus");if(button.disabled)return;button.disabled=true;button.textContent="Signing in…";status.textContent="Checking your account…";try{const response=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value}),signal:AbortSignal.timeout(12000)});const result=await response.json().catch(()=>({}));if(!response.ok)throw Error(result.detail||`Sign-in failed (${response.status}).`);localStorage.setItem("access_token",result.access_token);localStorage.setItem("user",JSON.stringify(result.user));window.location.assign(result.user.must_change_password?"/profile?first_login=1":({admin:"/admin-dashboard",teacher:"/teacher-dashboard",student:"/student-dashboard"})[result.user.role]||"/");}catch(error){status.textContent=error.name==="TimeoutError"||error.name==="AbortError"?"Sign-in timed out. Please retry.":error.message;button.disabled=false;button.textContent="Sign in";}});
+fetch("/api/setup-status",{signal:AbortSignal.timeout(12000)}).then(async response=>{if(!response.ok)throw Error("Setup status is unavailable.");return response.json();}).then(state=>{if(state.setup_required){const hint=document.getElementById("setupHint");hint.textContent="No administrator is set up. ";const link=document.createElement("a");link.href="/setup";link.textContent="Create the first administrator";hint.append(link);}}).catch(()=>{document.getElementById("setupHint").textContent="Could not load setup status. Check that SmartAttend is running and retry the page.";});
+</script></body></html>

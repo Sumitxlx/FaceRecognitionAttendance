@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta, timezone
+import os
+import secrets
 
 from jose import jwt
 
 
-# Secret key used to sign JWT tokens.
-# We will move this into an environment variable later.
-SECRET_KEY = "smartattend-development-secret-key"
+# Set SMARTATTEND_SECRET_KEY to keep tokens valid across restarts.
+# The process-local fallback avoids committing a reusable secret.
+SECRET_KEY = os.environ.get("SMARTATTEND_SECRET_KEY") or secrets.token_urlsafe(32)
 
 ALGORITHM = "HS256"
 

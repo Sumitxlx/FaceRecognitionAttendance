@@ -3,6 +3,7 @@ from datetime import datetime, date
 from sqlalchemy import (
     Date,
     DateTime,
+    Boolean,
     Float,
     ForeignKey,
     Integer,
@@ -11,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from backend.time_utils import utc_now_naive
 
 
 class Base(DeclarativeBase):
@@ -44,6 +46,11 @@ class User(Base):
         String,
         nullable=False
     )
+
+    username: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
+    student_id: Mapped[int | None] = mapped_column(ForeignKey("students.id"), nullable=True, unique=True)
+    teacher_id: Mapped[int | None] = mapped_column(ForeignKey("teachers.id"), nullable=True, unique=True)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 # =========================================================
@@ -112,6 +119,8 @@ class Teacher(Base):
         "Department",
         back_populates="teachers"
     )
+
+    subjects = relationship("Subject", back_populates="teacher")
 
     sessions = relationship(
         "AttendanceSession",
@@ -203,10 +212,14 @@ class Subject(Base):
         nullable=False
     )
 
+    teacher_id: Mapped[int | None] = mapped_column(ForeignKey("teachers.id"), nullable=True, index=True)
+
     department = relationship(
         "Department",
         back_populates="subjects"
     )
+
+    teacher = relationship("Teacher", back_populates="subjects")
 
     sessions = relationship(
         "AttendanceSession",
@@ -305,9 +318,19 @@ class AttendanceRecord(Base):
         nullable=True
     )
 
+    recognition_method: Mapped[str] = mapped_column(
+        String, nullable=False, default="face", server_default="legacy"
+    )
+
+    recognition_distance: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    marked_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+
     marked_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now_naive,
         nullable=False
     )
 
@@ -319,6 +342,12 @@ class AttendanceRecord(Base):
     student = relationship(
         "Student",
         back_populates="attendance_records"
+    )
+
+    marked_by = relationship("User", foreign_keys=[marked_by_user_id])
+
+    audit_events = relationship(
+        "AttendanceAudit", back_populates="record", order_by="AttendanceAudit.changed_at"
     )
 
     __table_args__ = (
@@ -354,9 +383,25 @@ class FaceEmbedding(Base):
         nullable=False
     )
 
+    model_name: Mapped[str] = mapped_column(
+        String, nullable=False, default="ArcFace", server_default="ArcFace"
+    )
+
+    model_version: Mapped[str] = mapped_column(
+        String, nullable=False, default="legacy-unspecified", server_default="legacy-unspecified"
+    )
+
+    vector_dimension: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=512, server_default="512"
+    )
+
+    preprocessing: Mapped[str] = mapped_column(
+        String, nullable=False, default="legacy-unspecified", server_default="legacy-unspecified"
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now_naive,
         nullable=False
     )
 
@@ -364,6 +409,26 @@ class FaceEmbedding(Base):
         "Student",
         back_populates="face_embedding"
     )
+
+
+class AttendanceAudit(Base):
+    __tablename__ = "attendance_audits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    attendance_record_id: Mapped[int] = mapped_column(
+        ForeignKey("attendance_records.id"), nullable=False, index=True
+    )
+    actor_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    previous_status: Mapped[str | None] = mapped_column(String, nullable=True)
+    new_status: Mapped[str] = mapped_column(String, nullable=False)
+    note: Mapped[str] = mapped_column(String, nullable=False, default="")
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now_naive
+    )
+
+    record = relationship("AttendanceRecord", back_populates="audit_events")
+    actor = relationship("User")
 
 
 # =========================================================

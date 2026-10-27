@@ -1,31 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAttend - Student Dashboard</title>
-</head>
-
-<body>
-
-    <header>
-        <h1>SmartAttend</h1>
-        <p>Student Dashboard</p>
-    </header>
-
-    <main>
-
-        <h2>Welcome, Student</h2>
-
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="attendance-records.html">Attendance Records</a>
-            <a href="analytics.html">Analytics</a>
-        </nav>
-
-    </main>
-
-</body>
-
-</html>
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Student portal{% endblock %}
+{% block breadcrumb %}My attendance{% endblock %}
+{% block content %}
+<section class="page-header"><div><p class="page-eyebrow">STUDENT PORTAL</p><h1 class="page-title" id="studentWelcome">My attendance</h1>
+  <p class="page-description">Your own attendance records and finalized attendance percentage.</p></div><div class="form-actions"><button id="refreshStudent" class="button button-secondary" type="button">Refresh</button><a class="secondary-button" href="/profile">Profile &amp; password</a><a class="secondary-button" href="/attendance-records">View records</a></div></section>
+<div class="page-stack">
+  <section id="studentMetrics" class="stats-grid"><article class="stat-card"><div class="stat-value">Loading…</div><div class="stat-label">Personal attendance</div></article></section>
+  <section class="app-panel"><h2>Subject attendance</h2><div id="studentSubjects" class="page-stack"><p class="muted">Loading subject records…</p></div></section>
+  <section class="app-panel"><h2>Attendance history</h2><div class="filter-row"><label class="field">From<input id="historyFrom" type="date"></label><label class="field">To<input id="historyTo" type="date"></label><label class="field">Subject<select id="historySubject"><option value="">All subjects</option></select></label><button id="applyHistoryFilters" class="button button-secondary" type="button">Apply filters</button></div></section>
+  <p id="studentStatus" class="status-message" role="status" aria-live="polite"></p>
+  <section class="app-panel"><h2>Attendance records</h2><div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Subject</th><th>Session</th><th>Teacher</th><th>Status</th><th>Method</th></tr></thead>
+    <tbody id="studentRecords"><tr><td colspan="6">Loading records…</td></tr></tbody></table></div></section>
+  <section class="app-panel"><h2>How the percentage is calculated</h2><p id="studentPolicy" class="muted">Loading attendance policy…</p></section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const api=window.SmartAttend.api,el=id=>document.getElementById(id);
+let portalBusy=false,lastSubjectIds="";
+async function loadStudentPortal(){
+  if(portalBusy)return;portalBusy=true;
+  const button=el("refreshStudent"),metrics=el("studentMetrics"),rows=el("studentRecords");
+  button.disabled=true;button.textContent="Refreshing…";
+  try{
+    const summary=await api("/api/dashboard"),student=summary.student_attendance?.[0],subjectRows=summary.subject_attendance||[];
+    const params=new URLSearchParams();if(el("historyFrom").value)params.set("start_date",el("historyFrom").value);if(el("historyTo").value)params.set("end_date",el("historyTo").value);if(el("historySubject").value)params.set("subject_id",el("historySubject").value);
+    const records=await api(`/api/attendance/records${params.size?`?${params}`:""}`);
+    if(student)el("studentWelcome").textContent=`Welcome, ${student.student_name} · ${student.roll_number}`;
+    const subjectSelect=el("historySubject"),subjectKey=subjectRows.map(item=>item.subject_id).join(",");if(subjectKey!==lastSubjectIds){const selected=subjectSelect.value;subjectSelect.replaceChildren(new Option("All subjects",""));subjectRows.forEach(item=>subjectSelect.append(new Option(item.subject,item.subject_id)));if(subjectKey.split(",").includes(selected))subjectSelect.value=selected;lastSubjectIds=subjectKey;}
+    metrics.replaceChildren();
+    [["Attendance rate",student?.attendance_percentage==null?"—":`${student.attendance_percentage}%`],["Classes attended",student?.attended_sessions||0],["Classes held",student?.eligible_completed_sessions||0],["Not attended",Math.max(0,(student?.eligible_completed_sessions||0)-(student?.attended_sessions||0))]].forEach(([label,value])=>{const card=document.createElement("article");card.className="stat-card";const number=document.createElement("div");number.className="stat-value";number.textContent=value;const caption=document.createElement("div");caption.className="stat-label";caption.textContent=label;card.append(number,caption);metrics.append(card);});
+    document.querySelector(".student-low-warning")?.remove();if(student?.at_risk){const warning=document.createElement("p");warning.className="status-message student-low-warning";warning.dataset.tone="error";warning.textContent=`Attendance is below the ${summary.attendance_threshold_percent}% threshold. Speak with your teacher about your attendance plan.`;metrics.after(warning);}
+    const subjectList=el("studentSubjects");subjectList.replaceChildren();if(!subjectRows.length)subjectList.textContent="No subject sessions have been finalized yet.";subjectRows.forEach(item=>{const box=document.createElement("div"),heading=document.createElement("div"),name=document.createElement("strong"),percent=document.createElement("span"),bar=document.createElement("progress");box.className="subject-progress";heading.className="card-header";name.textContent=`${item.subject} · ${item.code}`;percent.textContent=item.attendance_percentage==null?"—":`${item.attendance_percentage}%`;bar.max=100;bar.value=item.attendance_percentage||0;heading.append(name,percent);box.append(heading,bar,document.createTextNode(`${item.present_records} attended of ${item.completed_sessions} finalized classes`));subjectList.append(box);});
+    rows.replaceChildren();if(!records.length){const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=6;cell.textContent="No attendance records match these filters.";row.append(cell);rows.append(row);}
+    records.forEach(item=>{const row=document.createElement("tr");[item.session_date,item.subject,`#${item.session_id}`,item.teacher,item.status,item.method].forEach(value=>{const cell=document.createElement("td");cell.textContent=value;row.append(cell);});rows.append(row);});
+    el("studentPolicy").textContent=summary.attendance_policy;el("studentStatus").textContent="Personal records loaded from saved attendance. Updates automatically every 15 seconds.";
+  }catch(error){metrics.textContent=error.message;rows.innerHTML="<tr><td colspan='6'>Could not load personal attendance records.</td></tr>";el("studentStatus").textContent=error.message;}
+  finally{portalBusy=false;button.disabled=false;button.textContent="Refresh";}
+}
+el("refreshStudent").addEventListener("click",loadStudentPortal);el("applyHistoryFilters").addEventListener("click",loadStudentPortal);loadStudentPortal();window.setInterval(loadStudentPortal,15000);
+</script>
+{% endblock %}

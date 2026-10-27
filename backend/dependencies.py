@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ security = HTTPBearer()
 # =========================================================
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
@@ -34,8 +35,7 @@ def get_current_user(
         )
 
         user_id = payload.get("sub")
-
-        if user_id is None:
+        if user_id is None or not str(user_id).isdigit():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
@@ -48,9 +48,7 @@ def get_current_user(
             detail="Invalid token"
         )
 
-    user = db.query(User).filter(
-        User.id == int(user_id)
-    ).first()
+    user = db.query(User).filter(User.id == int(user_id)).first()
 
     if user is None:
 
@@ -58,6 +56,9 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found"
         )
+
+    if user.must_change_password and request.url.path not in {"/api/me/password", "/api/me"}:
+        raise HTTPException(status_code=403, detail="Change your temporary password before continuing")
 
     return user
 

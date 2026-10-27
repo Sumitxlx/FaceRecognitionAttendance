@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartAttend · Initial administrator setup</title><link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v=ui-refresh-20261027"></head>
+<body><main class="auth-layout"><section class="auth-card">
+  <div class="auth-brand"><span class="auth-brand-mark">SA</span><strong>SmartAttend</strong></div>
+  <h1>First administrator</h1><p>Create the initial administrator account for this installation.</p>
+  <form id="setupForm">
+    <label class="field">Email<input id="email" type="email" autocomplete="email" required></label>
+    <label class="field">Password (12 or more characters)<input id="password" type="password" minlength="12" maxlength="72" autocomplete="new-password" required></label>
+    <label class="field">Confirm password<input id="confirmPassword" type="password" minlength="12" maxlength="72" autocomplete="new-password" required></label>
+    <button type="submit">Create administrator</button>
+  </form>
+  <p id="status" class="status-message" role="status" aria-live="polite"></p>
+  <p class="auth-footer"><a href="/login">Back to sign in</a></p>
+</section></main>
+<script>
+const form=document.getElementById("setupForm"),statusBox=document.getElementById("status");
+async function checkSetup(){try{const response=await fetch("/api/setup-status");if(!response.ok)throw Error("Could not verify setup state.");const state=await response.json();if(!state.setup_required){form.hidden=true;statusBox.textContent="Administrator setup is already complete. Sign in instead.";}}catch(error){statusBox.textContent=error.message;}}
+form.addEventListener("submit",async event=>{event.preventDefault();const password=document.getElementById("password").value,button=form.querySelector("button");if(password!==document.getElementById("confirmPassword").value){statusBox.textContent="The passwords do not match.";return;}if(button.disabled)return;button.disabled=true;button.textContent="Creating administrator…";statusBox.textContent="Saving securely…";try{const response=await fetch("/api/setup/initial-admin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:document.getElementById("email").value.trim(),password}),signal:AbortSignal.timeout(15000)});const result=await response.json().catch(()=>({}));if(!response.ok)throw Error(result.detail||`Setup failed (${response.status}).`);localStorage.setItem("access_token",result.access_token);localStorage.setItem("user",JSON.stringify(result.user));statusBox.textContent="Administrator created. Opening dashboard…";window.location.assign("/admin-dashboard");}catch(error){statusBox.textContent=error.name==="TimeoutError"||error.name==="AbortError"?"Setup timed out. Check the server and retry.":error.message;button.disabled=false;button.textContent="Create administrator";}});
+checkSetup();
+</script></body></html>

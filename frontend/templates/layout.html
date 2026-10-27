@@ -19,27 +19,10 @@
         {% block title %}SmartAttend{% endblock %}
     </title>
 
-    <!-- Google Font -->
-    <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-    >
-
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet"
-    >
-
     <!-- Main stylesheet -->
     <link
         rel="stylesheet"
-        href="{{ url_for('static', path='css/style.css') }}"
+        href="{{ url_for('static', path='css/style.css') }}?v=ui-refresh-20261027"
     >
 
     {% block head %}
@@ -48,7 +31,7 @@
 </head>
 
 
-<body>
+<body data-required-roles="{{ allowed_roles|default('') }}">
 
     <div class="app-shell">
 
@@ -64,7 +47,7 @@
 
             <div class="sidebar-brand">
 
-                <a href="/" class="brand">
+                <a href="/" class="brand" data-app-home>
 
                     <div class="brand-mark">
                         SA
@@ -150,6 +133,27 @@
                             Dashboard
                         </span>
 
+                    </a>
+
+                    <a
+                        href="/admin-dashboard"
+                        class="nav-item {% if active_page == 'admin-dashboard' %}active{% endif %}"
+                    >
+                        <span class="nav-icon">A</span>
+                        <span>Admin dashboard</span>
+                    </a>
+
+                    <a
+                        href="/student-dashboard"
+                        class="nav-item {% if active_page == 'student-dashboard' %}active{% endif %}"
+                    >
+                        <span class="nav-icon">S</span>
+                        <span>My student dashboard</span>
+                    </a>
+
+                    <a href="/admin-dashboard#academic-setup" class="nav-item academic-nav-item">
+                        <span class="nav-icon">＋</span>
+                        <span>Departments &amp; subjects</span>
                     </a>
 
                 </div>
@@ -352,7 +356,7 @@
             <div class="sidebar-bottom">
 
 
-                <a href="#" class="nav-item">
+                <a href="/profile" class="nav-item {% if active_page == 'profile' %}active{% endif %}">
 
                     <span class="nav-icon">
 
@@ -378,13 +382,13 @@
                     </span>
 
                     <span>
-                        Settings
+                        Profile &amp; password
                     </span>
 
                 </a>
 
 
-                <a href="/login" class="nav-item logout-item">
+                <button type="button" data-logout class="nav-item logout-item">
 
                     <span class="nav-icon">
 
@@ -415,7 +419,7 @@
                         Sign out
                     </span>
 
-                </a>
+                </button>
 
 
             </div>
@@ -444,6 +448,8 @@
                         id="mobileMenuButton"
                         type="button"
                         aria-label="Open navigation"
+                        aria-controls="sidebar"
+                        aria-expanded="false"
                     >
 
                         <svg
@@ -485,14 +491,12 @@
 
                 <div class="topbar-right">
 
+                    <span id="authStatus" class="auth-status" role="status" aria-live="polite"></span>
 
-                    <!-- Notification -->
 
-                    <button
-                        class="icon-button"
-                        type="button"
-                        aria-label="Notifications"
-                    >
+                    <!-- Attendance history shortcut -->
+
+                    <a class="icon-button" href="/attendance-records" aria-label="View attendance records" title="Attendance records">
 
                         <svg
                             viewBox="0 0 24 24"
@@ -501,19 +505,12 @@
                             stroke-width="2"
                         >
 
-                            <path
-                                d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
-                            />
-
-                            <path
-                                d="M13.73 21a2 2 0 0 1-3.46 0"
-                            />
+                            <rect x="4" y="3" width="16" height="18" rx="2" />
+                            <path d="M8 8h8M8 12h8M8 16h5" />
 
                         </svg>
 
-                        <span class="notification-dot"></span>
-
-                    </button>
+                    </a>
 
 
                     <!-- Divider -->
@@ -526,20 +523,22 @@
                     <button
                         class="user-menu"
                         type="button"
+                        data-logout
+                        aria-label="Sign out"
                     >
 
                         <div class="user-avatar">
-                            T
+                            <span data-auth-avatar>?</span>
                         </div>
 
                         <div class="user-info">
 
                             <span class="user-name">
-                                Teacher
+                                <span data-auth-user>Account</span>
                             </span>
 
                             <span class="user-role">
-                                Faculty
+                                <span data-auth-role></span> · Sign out
                             </span>
 
                         </div>
@@ -608,7 +607,7 @@
     <!-- JavaScript -->
 
     <script
-        src="{{ url_for('static', path='js/app.js') }}"
+        src="{{ url_for('static', path='js/app.js') }}?v=student-account-flow-20261027"
     ></script>
 
 

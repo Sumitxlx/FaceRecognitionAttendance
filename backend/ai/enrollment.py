@@ -88,20 +88,11 @@ class FaceEnrollment:
     # FACE DETECTION
     # ==========================================================
 
-    def detect_face(self, frame):
+    def detect_faces(self, frame):
         """
-        Detect the largest face in the frame.
+        Detect faces in the frame.
 
-        Returns:
-
-            {
-                "x": int,
-                "y": int,
-                "width": int,
-                "height": int
-            }
-
-        or None.
+        Returns a list of bounding boxes.
         """
 
         gray = cv2.cvtColor(
@@ -116,31 +107,28 @@ class FaceEnrollment:
             0
         )
 
+        # Keep the established stricter detector result when available; a
+        # relaxed second pass recovers usable frontal images it used to miss.
         faces = self.face_detector.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=6,
-            minSize=(
-                self.MIN_FACE_WIDTH,
-                self.MIN_FACE_HEIGHT
-            )
+            gray, scaleFactor=1.1, minNeighbors=6,
+            minSize=(self.MIN_FACE_WIDTH, self.MIN_FACE_HEIGHT),
         )
-
         if len(faces) == 0:
+            faces = self.face_detector.detectMultiScale(
+                gray, scaleFactor=1.05, minNeighbors=4, minSize=(60, 60),
+            )
+
+        return [
+            {"x": int(x), "y": int(y), "width": int(w), "height": int(h)}
+            for x, y, w, h in faces
+        ]
+
+    def detect_face(self, frame):
+        """Return the largest detected face for existing callers."""
+        faces = self.detect_faces(frame)
+        if not faces:
             return None
-
-        # Choose the largest face.
-        x, y, w, h = max(
-            faces,
-            key=lambda face: face[2] * face[3]
-        )
-
-        return {
-            "x": int(x),
-            "y": int(y),
-            "width": int(w),
-            "height": int(h)
-        }
+        return max(faces, key=lambda face: face["width"] * face["height"])
 
     # ==========================================================
     # FACE CROP
@@ -343,14 +331,22 @@ class FaceEnrollment:
         # 1. Detect face
         # ------------------------------------------------------
 
-        bbox = self.detect_face(frame)
+        detected_faces = self.detect_faces(frame)
 
-        if bbox is None:
+        if not detected_faces:
 
             return {
                 "success": False,
                 "message": "No face detected"
             }
+
+        if len(detected_faces) > 1:
+            return {
+                "success": False,
+                "message": "More than one face detected. Keep only one face in the frame.",
+            }
+
+        bbox = detected_faces[0]
 
         # ------------------------------------------------------
         # 2. Face size

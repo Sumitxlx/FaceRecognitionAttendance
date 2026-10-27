@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Profile settings{% endblock %}
+{% block breadcrumb %}Profile settings{% endblock %}
+{% block content %}
+<section class="page-header"><div><p class="page-eyebrow">ACCOUNT</p><h1 class="page-title">Profile &amp; password</h1><p class="page-description">Review your signed-in account and update your password.</p></div></section>
+<div class="page-stack"><section class="app-panel"><div class="card-header"><h2>Account</h2><button id="retryProfile" class="button button-secondary" type="button">Reload profile</button></div><dl class="profile-details"><dt>Name</dt><dd id="profileName">—</dd><dt>Roll number</dt><dd id="profileRoll">—</dd><dt>Department</dt><dd id="profileDepartment">—</dd><dt>Email</dt><dd id="profileEmail">Account details will load after sign-in.</dd><dt>Username</dt><dd id="profileUsername">—</dd><dt>Role</dt><dd id="profileRole">—</dd></dl></section>
+  <section class="app-panel" data-first-login hidden><h2>Finish setting up your account</h2><p class="muted">This is your first sign-in. Choose a private password to unlock your student portal.</p></section>
+  <section class="app-panel"><h2>Change password</h2><p class="muted">Use at least 12 characters. Passwords are stored as a secure hash.</p>
+    <form id="passwordForm" class="page-stack">
+      <label class="field">Current password<input id="currentPassword" type="password" autocomplete="current-password" required></label>
+      <label class="field">New password<input id="newPassword" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label>
+      <label class="field">Confirm new password<input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label>
+      <div class="form-actions"><button class="button button-primary">Update password</button></div>
+    </form><p id="profileStatus" class="status-message" role="status" aria-live="polite"></p>
+  </section></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const api=window.SmartAttend.api,el=id=>document.getElementById(id);
+async function loadProfile(){el("profileEmail").textContent="Loading account…";try{const user=await api("/api/me");el("profileEmail").textContent=user.email;el("profileRole").textContent=user.role;el("profileName").textContent=user.name||"—";el("profileRoll").textContent=user.roll_number||"—";el("profileDepartment").textContent=user.department||"—";el("profileUsername").textContent=user.username||"—";}catch(error){el("profileEmail").textContent=error.message;}}
+el("retryProfile").addEventListener("click",loadProfile);loadProfile();
+el("passwordForm").addEventListener("submit",async event=>{event.preventDefault();const form=event.currentTarget,button=form.querySelector("button"),next=el("newPassword").value;if(next!==el("confirmPassword").value){el("profileStatus").textContent="New password confirmation does not match.";return;}if(button.disabled)return;button.disabled=true;button.textContent="Updating password…";el("profileStatus").textContent="Saving password securely…";try{const result=await api("/api/me/password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_password:el("currentPassword").value,new_password:next})});el("profileStatus").textContent=result.message;form.reset();}catch(error){el("profileStatus").textContent=error.message;}finally{button.disabled=false;button.textContent="Update password";}});
+</script>
+{% endblock %}

@@ -1,36 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAttend - Attendance Records</title>
-</head>
-
-<body>
-
-    <header>
-        <h1>SmartAttend</h1>
-        <p>Attendance Records</p>
-    </header>
-
-    <main>
-
-        <h2>Attendance Records</h2>
-
-        <p>Attendance records will appear here later.</p>
-
-        <nav>
-            <a href="admin-dashboard.html">Admin Dashboard</a>
-            <a href="teacher-dashboard.html">Teacher Dashboard</a>
-            <a href="student-dashboard.html">Student Dashboard</a>
-            <a href="take-attendance.html">Take Attendance</a>
-            <a href="students.html">Students</a>
-            <a href="analytics.html">Analytics</a>
-        </nav>
-
-    </main>
-
-</body>
-
-</html>
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Attendance records{% endblock %}
+{% block breadcrumb %}Attendance records{% endblock %}
+{% block content %}
+<section class="page-header"><div><p class="page-eyebrow">RECORDS</p><h1 class="page-title">Attendance records</h1>
+  <p class="page-description">Filter persisted entries, inspect staff corrections, and export the current result set.</p></div>
+  <button id="exportCsv" class="primary-button" type="button">Export filtered CSV</button></section>
+<section class="app-panel page-stack">
+  <p class="muted">Only committed attendance records appear here. Missing face detections never create absent records.</p>
+  <form id="filters" class="filter-row">
+    <label class="field">From<input id="fromDate" type="date"></label>
+    <label class="field">To<input id="toDate" type="date"></label>
+    <label id="subjectFilterField" class="field">Subject<select id="subjectFilter"><option value="">All subjects</option></select></label>
+    <label id="studentFilterField" class="field">Student<select id="studentFilter"><option value="">All students</option></select></label>
+    <label id="sessionFilterField" class="field">Session<select id="sessionFilter"><option value="">All sessions</option></select></label>
+    <label class="field">Status<select id="statusFilter"><option value="">Any status</option><option value="present">Present</option><option value="absent">Absent</option></select></label>
+    <button class="button button-primary" type="submit">Apply filters</button>
+    <button id="clearFilters" class="button button-secondary" type="button">Clear</button>
+  </form>
+  <p id="recordStatus" class="status-message" role="status" aria-live="polite">Loading records…</p>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Date / time</th><th>Student</th><th>Subject</th><th>Teacher</th><th>Status</th><th>Entry method</th><th>Audit</th></tr></thead>
+    <tbody id="recordRows"><tr><td colspan="7">Loading records…</td></tr></tbody></table></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const api=window.SmartAttend.api,el=id=>document.getElementById(id);let role="";
+function queryString(){const params=new URLSearchParams();[["start_date","fromDate"],["end_date","toDate"],["subject_id","subjectFilter"],["student_id","studentFilter"],["session_id","sessionFilter"],["status","statusFilter"]].forEach(([key,id])=>{const value=el(id).value;if(value)params.set(key,value);});return params;}
+async function loadFilters(){try{const me=await api("/api/me");role=me.role;if(role==="student"){["subjectFilterField","studentFilterField","sessionFilterField","exportCsv"].forEach(id=>{if(id==="exportCsv")el(id).hidden=false;else el(id).hidden=true;});return;}const [subjects,students,sessions]=await Promise.all([api("/api/subjects"),api("/api/students"),api("/api/attendance/sessions")]);[["subjectFilter",subjects,item=>`${item.name} (${item.code})`],["studentFilter",students,item=>`${item.name} (${item.roll_number})`],["sessionFilter",sessions,item=>`${item.session_date} · ${item.subject} · #${item.id}`]].forEach(([id,data,label])=>{const select=el(id);data.forEach(item=>{const option=document.createElement("option");option.value=id==="subjectFilter"?item.id:id==="studentFilter"?item.id:item.id;option.textContent=label(item);select.append(option);});});}catch(error){el("recordStatus").textContent=error.message;}}
+function renderAudit(record){if(!record.audit?.length)return "";const details=document.createElement("details"),summary=document.createElement("summary"),list=document.createElement("ul");summary.textContent=`${record.audit.length} change(s)`;record.audit.forEach(event=>{const item=document.createElement("li");item.textContent=`${event.action}: ${event.previous_status||"—"} → ${event.new_status} by ${event.actor} · ${event.changed_at}${event.note?` · ${event.note}`:""}`;list.append(item);});details.append(summary,list);return details;}
+async function loadRecords(event){event?.preventDefault();const tbody=el("recordRows");tbody.innerHTML="<tr><td colspan='7'>Loading records…</td></tr>";el("recordStatus").textContent="Loading records…";try{const rows=await api(`/api/attendance/records?${queryString()}`);tbody.replaceChildren();el("recordStatus").textContent=`${rows.length} saved record(s) match these filters.`;if(!rows.length){const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=7;cell.textContent="No records match the selected filters.";row.append(cell);tbody.append(row);return;}rows.forEach(record=>{const row=document.createElement("tr");const values=[`${record.session_date} · ${new Date(record.marked_at).toLocaleTimeString()}`,`${record.student_name} (${record.roll_number})`,record.subject,record.teacher,record.status,record.method+(record.recognition_distance===null?"":` · distance ${Number(record.recognition_distance).toFixed(3)}`)];values.forEach(value=>{const cell=document.createElement("td");cell.textContent=value;row.append(cell);});const auditCell=document.createElement("td"),details=renderAudit(record);if(details)auditCell.append(details);else auditCell.textContent=record.marked_by?`Entered by ${record.marked_by}`:"—";row.append(auditCell);tbody.append(row);});}catch(error){tbody.replaceChildren();const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=7;cell.textContent="Could not load attendance records.";row.append(cell);tbody.append(row);el("recordStatus").textContent=error.message;}}
+el("filters").addEventListener("submit",loadRecords);el("clearFilters").addEventListener("click",()=>{el("filters").reset();loadRecords();});el("exportCsv").addEventListener("click",async()=>{const button=el("exportCsv");button.disabled=true;const original=button.textContent;button.textContent="Preparing CSV…";try{const response=await fetch(`/api/attendance/records.csv?${queryString()}`,{headers:{Authorization:`Bearer ${window.SmartAttend.token()}`},signal:AbortSignal.timeout(30000)});if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.detail||`Export failed (${response.status})`);}const url=URL.createObjectURL(await response.blob());const link=document.createElement("a");link.href=url;link.download="smartattend-records.csv";link.style.display="none";document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1500);el("recordStatus").textContent="CSV export downloaded using the current filters.";}catch(error){el("recordStatus").textContent=error.name==="TimeoutError"?"CSV export timed out. Please retry.":error.message;}finally{button.disabled=false;button.textContent=original;}});
+loadFilters().then(loadRecords);
+</script>
+{% endblock %}

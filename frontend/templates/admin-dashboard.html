@@ -1,34 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "layout.html" %}
+{% block title %}SmartAttend · Administrator{% endblock %}
+{% block breadcrumb %}Administrator dashboard{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div><p class="page-eyebrow">ADMINISTRATION</p><h1 class="page-title">Institution setup</h1>
+    <p class="page-description">Manage departments, staff, subjects, accounts, and attendance coverage.</p></div>
+  <div class="form-actions"><button id="refreshAdmin" class="button button-secondary" type="button">Refresh data</button><a class="primary-button" href="/take-attendance">Start attendance</a></div>
+</section>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartAttend - Admin Dashboard</title>
-</head>
+<section class="app-panel">
+  <div class="card-header"><div><h2>Get one class ready</h2><p class="muted">Select an existing department, teacher login, and subject for a short end-to-end demonstration. Other departments and subjects remain available.</p></div><a class="button button-primary" href="/class-setup">Open class setup</a></div>
+</section>
 
-<body>
+<div class="page-stack">
+  <section class="stats-grid" id="adminMetrics" aria-live="polite"><article class="stat-card"><div class="stat-value">Loading…</div><div class="stat-label">Database totals</div></article></section>
+  <p id="adminDashboardStatus" class="status-message" role="status" aria-live="polite"></p>
 
-    <header>
-        <h1>SmartAttend</h1>
-        <p>Admin Dashboard</p>
-    </header>
+  <section class="app-panel" id="academic-setup">
+    <h2>Departments, teachers, and subjects</h2>
+    <p class="muted">Assign each teacher and subject to a department. Existing attendance history is retained when details are edited.</p>
+    <div class="panel-grid" style="margin-top:16px">
+      <form id="departmentForm" class="app-panel">
+        <h3>Department</h3>
+        <label class="field">Name<input id="departmentName" maxlength="120" required></label>
+        <div class="form-actions"><button class="button button-primary">Add department</button></div>
+        <p id="departmentStatus" class="status-message" role="status"></p>
+      </form>
+      <form id="teacherForm" class="app-panel">
+        <h3>Teacher</h3>
+        <label class="field">Name<input id="teacherName" maxlength="120" required></label>
+        <label class="field">Email<input id="teacherEmail" type="email" required></label>
+        <label class="field">Department<select id="teacherDepartment" required></select></label>
+        <div class="form-actions"><button class="button button-primary">Add teacher</button></div>
+        <p id="teacherStatus" class="status-message" role="status"></p>
+      </form>
+      <form id="subjectForm" class="app-panel">
+        <h3>Subject</h3>
+        <label class="field">Name<input id="subjectName" maxlength="120" required></label>
+        <label class="field">Code<input id="subjectCode" maxlength="32" required></label>
+        <label class="field">Department<select id="subjectDepartment" required></select></label>
+        <div class="form-actions"><button class="button button-primary">Add subject</button></div>
+        <p id="subjectStatus" class="status-message" role="status"></p>
+      </form>
+    </div>
+    <div class="panel-grid" style="margin-top:20px">
+      <div><h3>Departments</h3><div class="table-wrap"><table class="data-table"><tbody id="departmentList"><tr><td>Loading departments…</td></tr></tbody></table></div></div>
+      <div><h3>Teachers</h3><div class="table-wrap"><table class="data-table"><tbody id="teacherList"><tr><td>Loading teachers…</td></tr></tbody></table></div></div>
+      <div><h3>Subjects</h3><div class="table-wrap"><table class="data-table"><tbody id="subjectList"><tr><td>Loading subjects…</td></tr></tbody></table></div></div>
+    </div>
+  </section>
 
-    <main>
+  <section class="app-panel">
+    <h2>Create a sign-in account</h2>
+    <p class="muted">Create teacher accounts here using the matching teacher email. Student accounts are created from Students, where a generated temporary password is shown once.</p>
+    <form id="accountForm" class="form-grid">
+      <label class="field">Email<input id="accountEmail" type="email" required autocomplete="email"></label>
+      <label class="field">Temporary password<input id="accountPassword" type="password" required minlength="12" maxlength="72" autocomplete="new-password"></label>
+      <label class="field">Role<select id="accountRole"><option value="teacher">Teacher</option><option value="admin">Administrator</option></select></label>
+      <button class="button button-primary" type="submit">Create account</button>
+    </form>
+    <p id="accountStatus" class="status-message" role="status" aria-live="polite"></p>
+  </section>
 
-        <h2>Welcome, Admin</h2>
+  <section class="app-panel">
+    <h2>Attendance watchlist</h2>
+    <p class="muted">Based on completed sessions and the configured threshold. No eligible denominator is shown before a session is closed.</p>
+    <ul id="adminDefaulters" class="risk-list"><li>Loading analytics…</li></ul>
+  </section>
+</div>
+{% endblock %}
 
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="teacher-dashboard.html">Teacher Dashboard</a>
-            <a href="student-dashboard.html">Student Dashboard</a>
-            <a href="students.html">Students</a>
-            <a href="attendance-records.html">Attendance Records</a>
-            <a href="analytics.html">Analytics</a>
-        </nav>
-
-    </main>
-
-</body>
-
-</html>
+{% block scripts %}
+<script>
+const api = window.SmartAttend.api;
+const el = (id) => document.getElementById(id);
+function status(id, message, tone="") { const node=el(id); node.textContent=message; node.dataset.tone=tone; }
+function showRows(target, items, fields, endpoint) {
+  target.replaceChildren();
+  if (!items.length) { const row=document.createElement("tr"), cell=document.createElement("td"); cell.colSpan=2; cell.textContent="No records yet."; row.append(cell); target.append(row); return; }
+  items.forEach(item => {
+    const row=document.createElement("tr"), detail=document.createElement("td"), actionCell=document.createElement("td");
+    detail.textContent=fields(item); const edit=document.createElement("button"); edit.className="button button-secondary"; edit.type="button"; edit.textContent="Edit"; edit.dataset.edit=endpoint; edit.dataset.id=item.id; actionCell.append(edit); row.append(detail,actionCell); target.append(row);
+  });
+}
+function fillDepartments(select, departments) {
+  select.replaceChildren(); const first=document.createElement("option"); first.value=""; first.textContent=departments.length?"Select department":"Add a department first"; select.append(first);
+  departments.forEach(department=>{const option=document.createElement("option");option.value=department.id;option.textContent=department.name;select.append(option);});
+}
+let academic={departments:[],teachers:[],subjects:[]};
+async function loadAcademic() {
+  try {
+    [academic.departments,academic.teachers,academic.subjects]=await Promise.all([api("/api/departments"),api("/api/teachers"),api("/api/subjects")]);
+    fillDepartments(el("teacherDepartment"),academic.departments); fillDepartments(el("subjectDepartment"),academic.departments);
+    const depName=new Map(academic.departments.map(item=>[item.id,item.name]));
+    showRows(el("departmentList"),academic.departments,item=>item.name,"departments");
+    showRows(el("teacherList"),academic.teachers,item=>`${item.name} · ${item.email} · ${depName.get(item.department_id)||"Department missing"}`,"teachers");
+    showRows(el("subjectList"),academic.subjects,item=>`${item.name} (${item.code}) · ${depName.get(item.department_id)||"Department missing"}`,"subjects");
+  } catch(error) { ["departmentList","teacherList","subjectList"].forEach(id=>{const row=document.createElement("tr"),cell=document.createElement("td");cell.colSpan=2;cell.textContent=error.message;row.append(cell);el(id).replaceChildren(row);}); status("adminDashboardStatus",error.message,"error"); }
+}
+async function loadMetrics() {
+  const target=el("adminMetrics");
+  try { const data=await api("/api/dashboard"); target.replaceChildren();
+    [["Students",data.student_count],["Face enrolled",data.enrolled_student_count],["Sessions",data.session_count],["Check-ins",data.check_ins],["At risk",data.defaulter_count]].forEach(([label,value])=>{const card=document.createElement("article");card.className="stat-card";const num=document.createElement("div");num.className="stat-value";num.textContent=value;const cap=document.createElement("div");cap.className="stat-label";cap.textContent=label;card.append(num,cap);target.append(card);});
+    const list=el("adminDefaulters"); list.replaceChildren(); if(!data.attendance_denominator){list.textContent="No completed sessions yet; attendance risk is not calculated.";} else if(!data.defaulters.length){list.textContent=`No students below ${data.attendance_threshold_percent}%.`;} else data.defaulters.forEach(student=>{const li=document.createElement("li");li.textContent=`${student.student_name} (${student.roll_number}) — ${student.attendance_percentage}%`;list.append(li);});
+  } catch(error) { target.textContent=error.message; status("adminDashboardStatus",error.message,"error"); }
+}
+async function saveForm(event, endpoint, payload, messageId) {
+  event.preventDefault(); const form=event.currentTarget,button=form.querySelector('button[type="submit"]')||form.querySelector("button");
+  if(button?.disabled)return; if(button)button.disabled=true; status(messageId,"Saving…");
+  try { await api(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload())}); form.reset(); status(messageId,"Saved to the database.","success"); await loadAcademic(); }
+  catch(error) { status(messageId,error.message,"error"); }
+  finally { if(button)button.disabled=false; }
+}
+el("departmentForm").addEventListener("submit",event=>saveForm(event,"/api/departments",()=>({name:el("departmentName").value}),"departmentStatus"));
+el("teacherForm").addEventListener("submit",event=>saveForm(event,"/api/teachers",()=>({name:el("teacherName").value,email:el("teacherEmail").value,department_id:Number(el("teacherDepartment").value)}),"teacherStatus"));
+el("subjectForm").addEventListener("submit",event=>saveForm(event,"/api/subjects",()=>({name:el("subjectName").value,code:el("subjectCode").value,department_id:Number(el("subjectDepartment").value)}),"subjectStatus"));
+document.addEventListener("click",async event=>{
+  const button=event.target.closest("[data-edit]"); if(!button)return;
+  const kind=button.dataset.edit,id=Number(button.dataset.id); const item=academic[kind].find(row=>row.id===id); if(!item)return;
+  let body;
+  if(kind==="departments"){const name=prompt("Department name",item.name);if(name===null)return;body={name};}
+  if(kind==="teachers"){const name=prompt("Teacher name",item.name);if(name===null)return;const email=prompt("Teacher contact email (use Class setup to link a login without changing its sign-in email)",item.email);if(email===null)return;const department_id=Number(prompt("Department ID",item.department_id));if(!department_id)return;body={name,email,department_id};}
+  if(kind==="subjects"){const name=prompt("Subject name",item.name);if(name===null)return;const code=prompt("Subject code",item.code);if(code===null)return;const department_id=Number(prompt("Department ID",item.department_id));if(!department_id)return;body={name,code,department_id};}
+  try{await api(`/api/${kind}/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});status("adminDashboardStatus","Changes saved.","success");await loadAcademic();}
+  catch(error){status("adminDashboardStatus",error.message,"error");}
+});
+el("accountForm").addEventListener("submit",async event=>{
+  event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]');if(button.disabled)return;button.disabled=true;status("accountStatus","Creating account…");
+  try{const result=await api("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:el("accountEmail").value.trim(),password:el("accountPassword").value,role:el("accountRole").value})});form.reset();status("accountStatus",`Account created for ${result.email} (${result.role}).`,"success");}
+  catch(error){status("accountStatus",error.message,"error");}
+  finally{button.disabled=false;}
+});
+el("refreshAdmin").addEventListener("click",()=>{loadMetrics();loadAcademic();});
+loadMetrics(); loadAcademic();
+</script>
+{% endblock %}
